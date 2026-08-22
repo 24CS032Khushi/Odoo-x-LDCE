@@ -1,0 +1,17 @@
+{
+  "name": "globetrotter-smart",
+  "version": "1.0.0",
+  "private": true,
+  "description": "GlobeTrotter Smart - Personalized Travel Planning App (Odoo x LDCE Ahmedabad Hackathon '26)",
+  "scripts": {
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "prisma:migrate": "npm --prefix backend run prisma:migrate",
+    "prisma:studio": "npm --prefix backend run prisma:studio",
+    "build": "npm --prefix frontend run build"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

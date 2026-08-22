@@ -1,0 +1,180 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum ExpenseCategory {
+  transport
+  stay
+  activities
+  meals
+  other
+}
+
+enum CollaboratorRole {
+  owner
+  editor
+  viewer
+}
+
+model User {
+  id            Int                @id @default(autoincrement())
+  name          String
+  email         String             @unique
+  password_hash String
+  photo_url     String?
+  language      String             @default("en")
+  created_at    DateTime           @default(now())
+
+  trips              Trip[]
+  collaborators      Collaborator[]
+  saved_destinations SavedDestination[]
+
+  @@map("users")
+}
+
+model Trip {
+  id              Int       @id @default(autoincrement())
+  user_id         Int
+  name            String
+  description     String?
+  start_date      DateTime? @db.Date
+  end_date        DateTime? @db.Date
+  cover_photo_url String?
+  total_budget    Decimal   @default(0.00) @db.Decimal(10, 2)
+  status          String    @default("planning")
+  is_public       Boolean   @default(false)
+  share_slug      String    @unique
+  created_at      DateTime  @default(now())
+
+  user               User               @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  trip_stops         TripStop[]
+  expenses           Expense[]
+  collaborators      Collaborator[]
+  trip_health_score  TripHealthScore?
+
+  @@map("trips")
+}
+
+model City {
+  id               Int      @id @default(autoincrement())
+  name             String
+  country          String
+  region           String?
+  cost_index       Decimal  @default(1.00) @db.Decimal(10, 2)
+  popularity_score Decimal  @default(0.00) @db.Decimal(10, 2)
+  image_url        String?
+
+  trip_stops         TripStop[]
+  activities         Activity[]
+  saved_destinations SavedDestination[]
+
+  @@map("cities")
+}
+
+model Activity {
+  id               Int      @id @default(autoincrement())
+  city_id          Int
+  name             String
+  category         String
+  description      String?
+  image_url        String?
+  cost             Decimal  @default(0.00) @db.Decimal(10, 2)
+  duration_minutes Int      @default(60)
+
+  city             City             @relation(fields: [city_id], references: [id], onDelete: Cascade)
+  itinerary_items  ItineraryItem[]
+
+  @@map("activities")
+}
+
+model TripStop {
+  id             Int       @id @default(autoincrement())
+  trip_id        Int
+  city_id        Int
+  order_index    Int       @default(0)
+  arrival_date   DateTime? @db.Date
+  departure_date DateTime? @db.Date
+
+  trip            Trip            @relation(fields: [trip_id], references: [id], onDelete: Cascade)
+  city            City            @relation(fields: [city_id], references: [id], onDelete: Cascade)
+  itinerary_items ItineraryItem[]
+  expenses        Expense[]
+
+  @@map("trip_stops")
+}
+
+model ItineraryItem {
+  id           Int      @id @default(autoincrement())
+  trip_stop_id Int
+  activity_id  Int
+  day_number   Int      @default(1)
+  start_time   String?
+  order_index  Int      @default(0)
+  custom_cost  Decimal? @db.Decimal(10, 2)
+
+  trip_stop TripStop @relation(fields: [trip_stop_id], references: [id], onDelete: Cascade)
+  activity  Activity @relation(fields: [activity_id], references: [id], onDelete: Cascade)
+
+  @@map("itinerary_items")
+}
+
+model Expense {
+  id           Int             @id @default(autoincrement())
+  trip_id      Int
+  category     ExpenseCategory
+  amount       Decimal         @db.Decimal(10, 2)
+  trip_stop_id Int?
+
+  trip      Trip      @relation(fields: [trip_id], references: [id], onDelete: Cascade)
+  trip_stop TripStop? @relation(fields: [trip_stop_id], references: [id], onDelete: SetNull)
+
+  @@map("expenses")
+}
+
+model Collaborator {
+  id          Int              @id @default(autoincrement())
+  trip_id     Int
+  user_id     Int
+  role        CollaboratorRole @default(viewer)
+  invited_at  DateTime         @default(now())
+  accepted_at DateTime?
+
+  trip Trip @relation(fields: [trip_id], references: [id], onDelete: Cascade)
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([trip_id, user_id])
+  @@map("collaborators")
+}
+
+model SavedDestination {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  city_id    Int
+  created_at DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  city City @relation(fields: [city_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, city_id])
+  @@map("saved_destinations")
+}
+
+model TripHealthScore {
+  id                 Int      @id @default(autoincrement())
+  trip_id            Int      @unique
+  budget_score       Decimal  @default(0.00) @db.Decimal(5, 2)
+  load_balance_score Decimal  @default(0.00) @db.Decimal(5, 2)
+  conflict_score     Decimal  @default(0.00) @db.Decimal(5, 2)
+  buffer_score       Decimal  @default(0.00) @db.Decimal(5, 2)
+  overall_score      Decimal  @default(0.00) @db.Decimal(5, 2)
+  computed_at        DateTime @default(now())
+
+  trip Trip @relation(fields: [trip_id], references: [id], onDelete: Cascade)
+
+  @@map("trip_health_scores")
+}
