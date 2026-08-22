@@ -12,7 +12,8 @@ import {
   Layers,
   Wallet,
   Share2,
-  Activity
+  Activity,
+  Scale
 } from 'lucide-react';
 import { PhotoCard } from '../../components/shared/Card';
 import Button from '../../components/shared/Button';
@@ -90,17 +91,29 @@ export const TripsPage = () => {
             Manage, schedule, budget, and share all your multi-destination journeys.
           </p>
         </div>
-        <Button
-          variant="primary"
-          size="md"
-          icon={Plus}
-          onClick={() => {
-            setEditingTrip(null);
-            setCreateModalOpen(true);
-          }}
-        >
-          Plan New Trip
-        </Button>
+
+        <div className="flex items-center gap-3">
+          <Link to="/trips/compare">
+            <Button
+              variant="secondary"
+              size="md"
+              icon={Scale}
+            >
+              Compare Drafts
+            </Button>
+          </Link>
+          <Button
+            variant="primary"
+            size="md"
+            icon={Plus}
+            onClick={() => {
+              setEditingTrip(null);
+              setCreateModalOpen(true);
+            }}
+          >
+            Plan New Trip
+          </Button>
+        </div>
       </div>
 
       {/* Trips Grid */}

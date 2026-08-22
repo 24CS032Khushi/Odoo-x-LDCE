@@ -10,10 +10,12 @@ import {
   Plane,
   Layers,
   ArrowRight,
-  ExternalLink
+  ExternalLink,
+  Download
 } from 'lucide-react';
 import { FullPageLoader } from '../../components/shared/Loader';
 import Button from '../../components/shared/Button';
+import ExportTripModal from '../../components/trips/ExportTripModal';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import api from '../../services/api';
@@ -27,6 +29,7 @@ export const PublicSharePage = () => {
   const [trip, setTrip] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCopying, setIsCopying] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   useEffect(() => {
     fetchSharedTrip();
@@ -107,7 +110,16 @@ export const PublicSharePage = () => {
             </span>
           </Link>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => setIsExportModalOpen(true)}
+              className="px-3.5 py-1.5 rounded-full bg-white/15 hover:bg-white/25 text-white font-semibold text-xs transition-colors hidden sm:inline-flex items-center gap-1.5"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Export (.ics)</span>
+            </button>
+
             {isAuthenticated ? (
               <Link to="/dashboard">
                 <Button variant="ghost" size="sm" className="text-white hover:bg-white/10">
@@ -208,14 +220,24 @@ export const PublicSharePage = () => {
             <h2 className="font-display font-bold text-2xl text-abyss">
               Complete Travel Schedule
             </h2>
-            <button
-              type="button"
-              onClick={handleCopyTrip}
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-ocean-teal hover:underline"
-            >
-              <Copy className="w-3.5 h-3.5" />
-              <span>Clone this plan</span>
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setIsExportModalOpen(true)}
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-abyss"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Export Calendar</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleCopyTrip}
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-ocean-teal hover:underline"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                <span>Clone this plan</span>
+              </button>
+            </div>
           </div>
 
           <div className="space-y-6">
@@ -312,6 +334,16 @@ export const PublicSharePage = () => {
           </button>
         </div>
       </main>
+
+      {/* Export Modal */}
+      {trip && (
+        <ExportTripModal
+          isOpen={isExportModalOpen}
+          onClose={() => setIsExportModalOpen(false)}
+          trip={trip}
+          itineraryDays={trip.days}
+        />
+      )}
     </div>
   );
 };

@@ -15,7 +15,9 @@ import {
   CalendarDays,
   ArrowRight,
   Wallet,
-  AlertTriangle
+  AlertTriangle,
+  Download,
+  Scale
 } from 'lucide-react';
 import Card, { CardHeader, CardTitle, CardDescription, CardBody } from '../../components/shared/Card';
 import Button from '../../components/shared/Button';
@@ -23,6 +25,7 @@ import { FullPageLoader } from '../../components/shared/Loader';
 import HealthScoreGauge from '../../components/analytics/HealthScoreGauge';
 import SanityCheckBanner from '../../components/analytics/SanityCheckBanner';
 import ShareTripModal from '../../components/trips/ShareTripModal';
+import ExportTripModal from '../../components/trips/ExportTripModal';
 import { useToast } from '../../context/ToastContext';
 import api from '../../services/api';
 
@@ -34,6 +37,7 @@ export const ItineraryViewPage = () => {
   const [itinerary, setItinerary] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   useEffect(() => {
     fetchItinerary();
@@ -88,6 +92,16 @@ export const ItineraryViewPage = () => {
 
         {/* Action Controls */}
         <div className="flex flex-wrap items-center gap-2.5 self-stretch sm:self-auto justify-start sm:justify-end">
+          {/* Export / Offline Sync Pill Button */}
+          <button
+            type="button"
+            onClick={() => setIsExportModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white hover:bg-slate-50 border border-slate-200 text-xs font-bold text-abyss shadow-xs transition-colors"
+          >
+            <Download className="w-3.5 h-3.5 text-ocean-teal" />
+            <span>Export (.ics)</span>
+          </button>
+
           {/* Share Pill Button */}
           <button
             type="button"
@@ -97,6 +111,17 @@ export const ItineraryViewPage = () => {
             <Share2 className="w-3.5 h-3.5 text-ocean-teal" />
             <span>Share</span>
           </button>
+
+          {/* Compare Button */}
+          <Link to={`/trips/compare?tripA=${id}`}>
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white hover:bg-slate-50 border border-slate-200 text-xs font-bold text-abyss shadow-xs transition-colors"
+            >
+              <Scale className="w-3.5 h-3.5 text-ocean-teal" />
+              <span>Compare</span>
+            </button>
+          </Link>
 
           {/* Quick Nav to Budget */}
           <Link to={`/budget?trip_id=${id}`}>
@@ -186,19 +211,27 @@ export const ItineraryViewPage = () => {
             const dayCost = dayItems.reduce((acc, item) => acc + parseFloat(item.effective_cost || 0), 0);
             const dayFlags = sanityFlags.filter((f) => f.day_number === parseInt(dayNum, 10));
 
+            // Pacing Intensity Tag
+            const itemCount = dayItems.length;
+            const pacingLabel = itemCount >= 5 ? 'Packed Intensity' : itemCount >= 3 ? 'Balanced Pacing' : itemCount >= 1 ? 'Relaxed Exploration' : 'Light Buffer Day';
+            const pacingColor = itemCount >= 5 ? 'bg-amber-500/10 text-amber-800' : 'bg-ocean-teal/10 text-ocean-teal';
+
             return (
               <div
                 key={dayNum}
                 className="bg-white border border-slate-200 rounded-[20px] shadow-sm overflow-hidden"
               >
-                {/* Day Header */}
+                {/* Day Header with Pacing Chip */}
                 <div className="px-6 py-4 bg-slate-50/80 border-b border-slate-200 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <span className="px-3.5 py-1 rounded-full bg-abyss text-white font-display font-bold text-sm shadow-xs">
                       Day {dayNum}
                     </span>
-                    <span className="text-xs text-slate-500 font-medium">
-                      {dayItems.length} {dayItems.length === 1 ? 'Experience' : 'Experiences'}
+                    <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${pacingColor}`}>
+                      {pacingLabel}
+                    </span>
+                    <span className="text-xs text-slate-500 font-medium hidden sm:inline">
+                      ({itemCount} {itemCount === 1 ? 'Experience' : 'Experiences'})
                     </span>
                   </div>
                   <span className="text-xs font-bold text-ocean-teal">
@@ -294,6 +327,21 @@ export const ItineraryViewPage = () => {
           onTripUpdated={(data) => {
             setItinerary((prev) => ({ ...prev, is_public: data.is_public, share_slug: data.share_slug }));
           }}
+        />
+      )}
+
+      {/* Export / Calendar Sync Modal */}
+      {itinerary && (
+        <ExportTripModal
+          isOpen={isExportModalOpen}
+          onClose={() => setIsExportModalOpen(false)}
+          trip={{
+            id: itinerary.trip_id,
+            name: itinerary.trip_name,
+            start_date: itinerary.start_date,
+            end_date: itinerary.end_date
+          }}
+          itineraryDays={itinerary.days}
         />
       )}
     </div>

@@ -40,8 +40,11 @@ const runTests = async () => {
       })
     });
     const signupData = await signupRes.json();
-    assert(signupRes.status === 201 && signupData.data.token, 'User signup returns JWT');
-    testUserToken = signupData.data.token;
+    if (!signupData.data || !signupData.data.token) {
+      console.error('Signup response debug:', signupRes.status, signupData);
+    }
+    assert(signupRes.status === 201 && signupData.data?.token, 'User signup returns JWT');
+    testUserToken = signupData.data?.token;
 
     // 2. Admin Login
     console.log('\n2. Admin Authentication:');

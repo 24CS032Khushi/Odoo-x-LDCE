@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { User, LogOut, ChevronDown, Menu, X, Plane, Shield, Calendar, Wallet } from 'lucide-react';
+import { User, LogOut, ChevronDown, Menu, X, Plane, Shield, Calendar, Wallet, Scale } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 
@@ -52,6 +52,7 @@ export const Navbar = () => {
     { label: 'Discover', path: '/discover' },
     { label: 'Budget', path: '/budget' },
     { label: 'Calendar', path: '/calendar' },
+    { label: 'Compare', path: '/trips/compare' },
     ...(user?.role === 'admin' ? [{ label: 'Admin', path: '/admin' }] : [])
   ];
 
@@ -75,7 +76,7 @@ export const Navbar = () => {
           </Link>
 
           {/* Center Navigation Links */}
-          <div className="hidden md:flex items-center gap-6 lg:gap-8">
+          <div className="hidden md:flex items-center gap-5 lg:gap-7">
             {currentNavLinks.map((item) => {
               const isActive = location.pathname === item.path;
               return (
@@ -144,6 +145,15 @@ export const Navbar = () => {
                         >
                           <User className="w-3.5 h-3.5 text-white/70" />
                           Profile & Settings
+                        </Link>
+
+                        <Link
+                          to="/trips/compare"
+                          onClick={() => setDropdownOpen(false)}
+                          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-white/90 hover:bg-white/15 transition-colors"
+                        >
+                          <Scale className="w-3.5 h-3.5 text-white/70" />
+                          Compare Drafts
                         </Link>
 
                         {user?.role === 'admin' && (

@@ -15,6 +15,7 @@ import ProfilePage from './pages/profile/ProfilePage';
 import TripsPage from './pages/trips/TripsPage';
 import ItineraryBuilderPage from './pages/trips/ItineraryBuilderPage';
 import ItineraryViewPage from './pages/trips/ItineraryViewPage';
+import TripComparePage from './pages/trips/TripComparePage';
 import DiscoverPage from './pages/discover/DiscoverPage';
 import BudgetPage from './pages/budget/BudgetPage';
 import CalendarPage from './pages/calendar/CalendarPage';
@@ -62,6 +63,7 @@ export function AppRoutes() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/trips" element={<TripsPage />} />
+          <Route path="/trips/compare" element={<TripComparePage />} />
           <Route path="/trips/:id" element={<ItineraryViewPage />} />
           <Route path="/trips/:id/builder" element={<ItineraryBuilderPage />} />
           <Route path="/discover" element={<DiscoverPage />} />
