@@ -1,0 +1,3 @@
+-- GlobeTrotter Smart: Seed Script Stub
+-- Odoo x LDCE Ahmedabad Hackathon '26
+-- Full seed data for cities, activities, and demo itineraries will be populated in Phase 4.
