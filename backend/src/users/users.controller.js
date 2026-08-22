@@ -73,3 +73,18 @@ export const updateMe = async (req, res, next) => {
     next(error);
   }
 };
+
+export const deleteMe = async (req, res, next) => {
+  try {
+    await prisma.user.delete({
+      where: { id: req.user.id }
+    });
+
+    res.status(200).json({
+      success: true,
+      data: { message: 'Account and associated data successfully deleted.' }
+    });
+  } catch (error) {
+    next(error);
+  }
+};

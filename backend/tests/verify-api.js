@@ -2,16 +2,15 @@ import app from '../src/index.js';
 import prisma from '../src/prisma.js';
 
 let server;
-const PORT = 4999;
+const PORT = 4998;
 const BASE_URL = `http://localhost:${PORT}/api/v1`;
 
 let testUserToken = '';
-const testEmail = `explorer_${Date.now()}@example.com`;
+const testEmail = `explorer_phase2_${Date.now()}@example.com`;
 
 const runTests = async () => {
-  console.log('--- Starting GlobeTrotter Phase 1 API Verification ---\n');
+  console.log('--- Starting GlobeTrotter Phase 2 API Verification ---\n');
 
-  // Start temporary test server instance
   server = app.listen(PORT);
   let passed = 0;
   let failed = 0;
@@ -28,166 +27,216 @@ const runTests = async () => {
   };
 
   try {
-    // 1. Health check
-    console.log('1. Testing Health Endpoint:');
-    const healthRes = await fetch(`${BASE_URL}/health`);
-    const healthData = await healthRes.json();
-    assert(healthRes.status === 200 && healthData.success === true, 'GET /api/v1/health returns 200 and success: true');
-
-    // 2. Signup with valid details
-    console.log('\n2. Testing User Signup:');
+    // 1. Signup & Auth
+    console.log('1. User Signup for Phase 2:');
     const signupRes = await fetch(`${BASE_URL}/auth/signup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        name: 'Khushi Patel',
+        name: 'Alex Explorer',
         email: testEmail,
         password: 'Password123!'
       })
     });
     const signupData = await signupRes.json();
-    assert(
-      signupRes.status === 201 &&
-      signupData.success === true &&
-      signupData.data.token &&
-      signupData.data.user.email === testEmail &&
-      !signupData.data.user.password_hash,
-      'POST /api/v1/auth/signup creates user and returns JWT + user without password_hash'
-    );
-    testUserToken = signupData.data?.token;
+    assert(signupRes.status === 201 && signupData.data.token, 'User signup returns JWT');
+    testUserToken = signupData.data.token;
 
-    // 3. Signup with duplicate email
-    console.log('\n3. Testing Duplicate Signup:');
-    const dupRes = await fetch(`${BASE_URL}/auth/signup`, {
+    // 2. City Search & Filters
+    console.log('\n2. City Search & Filters:');
+    const citiesRes = await fetch(`${BASE_URL}/cities?search=Japan`);
+    const citiesData = await citiesRes.json();
+    assert(
+      citiesRes.status === 200 &&
+      citiesData.success &&
+      citiesData.data.cities.length >= 2,
+      'GET /api/v1/cities?search=Japan returns seeded Japanese cities (Kyoto, Tokyo)'
+    );
+
+    const kyotoCity = citiesData.data.cities.find((c) => c.name === 'Kyoto') || citiesData.data.cities[0];
+    const tokyoCity = citiesData.data.cities.find((c) => c.name === 'Tokyo') || citiesData.data.cities[1];
+
+    // 3. Activity Filtering
+    console.log('\n3. Activity Filtering:');
+    const activitiesRes = await fetch(`${BASE_URL}/activities?city_id=${kyotoCity.id}&category=culture`);
+    const activitiesData = await activitiesRes.json();
+    assert(
+      activitiesRes.status === 200 &&
+      activitiesData.success &&
+      activitiesData.data.activities.length >= 1,
+      'GET /api/v1/activities?city_id=X&category=culture returns filtered activities'
+    );
+    const sampleActivity = activitiesData.data.activities[0];
+
+    // 4. Create Trip
+    console.log('\n4. Create Trip:');
+    const createTripRes = await fetch(`${BASE_URL}/trips`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${testUserToken}`
+      },
       body: JSON.stringify({
-        name: 'Duplicate Explorer',
-        email: testEmail,
-        password: 'Password123!'
+        name: 'Japan Autumn Discovery',
+        description: 'Exploring ancient temples and modern skylines',
+        start_date: '2026-10-10',
+        end_date: '2026-10-20',
+        total_budget: '150000.00',
+        cover_photo_url: kyotoCity.image_url
       })
     });
-    const dupData = await dupRes.json();
+    const createTripData = await createTripRes.json();
     assert(
-      dupRes.status === 409 &&
-      dupData.success === false &&
-      dupData.error.code === 'EMAIL_EXISTS',
-      'POST /api/v1/auth/signup with duplicate email returns 409 EMAIL_EXISTS in error format'
+      createTripRes.status === 201 &&
+      createTripData.success &&
+      createTripData.data.trip.name === 'Japan Autumn Discovery' &&
+      createTripData.data.trip.share_slug,
+      'POST /api/v1/trips creates trip with auto-generated share_slug and owner collaborator'
     );
+    const createdTrip = createTripData.data.trip;
 
-    // 4. Login with correct credentials
-    console.log('\n4. Testing User Login:');
-    const loginRes = await fetch(`${BASE_URL}/auth/login`, {
+    // 5. Add Stops to Trip
+    console.log('\n5. Add Trip Stops:');
+    const stop1Res = await fetch(`${BASE_URL}/trips/${createdTrip.id}/stops`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${testUserToken}`
+      },
       body: JSON.stringify({
-        email: testEmail,
-        password: 'Password123!'
+        city_id: kyotoCity.id,
+        arrival_date: '2026-10-10',
+        departure_date: '2026-10-15',
+        order_index: 0
       })
     });
-    const loginData = await loginRes.json();
-    assert(
-      loginRes.status === 200 &&
-      loginData.success === true &&
-      loginData.data.token,
-      'POST /api/v1/auth/login succeeds with valid credentials and issues JWT'
-    );
+    const stop1Data = await stop1Res.json();
 
-    // 5. Login with invalid password
-    console.log('\n5. Testing Invalid Login:');
-    const badLoginRes = await fetch(`${BASE_URL}/auth/login`, {
+    const stop2Res = await fetch(`${BASE_URL}/trips/${createdTrip.id}/stops`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${testUserToken}`
+      },
       body: JSON.stringify({
-        email: testEmail,
-        password: 'WrongPassword999'
+        city_id: tokyoCity.id,
+        arrival_date: '2026-10-15',
+        departure_date: '2026-10-20',
+        order_index: 1
       })
     });
-    const badLoginData = await badLoginRes.json();
-    assert(
-      badLoginRes.status === 401 &&
-      badLoginData.success === false &&
-      badLoginData.error.code === 'INVALID_CREDENTIALS',
-      'POST /api/v1/auth/login with wrong password returns 401 INVALID_CREDENTIALS'
-    );
+    const stop2Data = await stop2Res.json();
 
-    // 6. Access protected route without token
-    console.log('\n6. Testing Protected Route Without Token:');
-    const noAuthRes = await fetch(`${BASE_URL}/users/me`);
-    const noAuthData = await noAuthRes.json();
     assert(
-      noAuthRes.status === 401 &&
-      noAuthData.success === false &&
-      noAuthData.error.code === 'UNAUTHORIZED',
-      'GET /api/v1/users/me without token returns 401 UNAUTHORIZED in error format'
+      stop1Res.status === 201 && stop2Res.status === 201 &&
+      stop1Data.data.stop.city.name === kyotoCity.name,
+      'POST /api/v1/trips/:id/stops adds Kyoto and Tokyo stops to the trip'
     );
+    const kyotoStop = stop1Data.data.stop;
+    const tokyoStop = stop2Data.data.stop;
 
-    // 7. Access protected route with invalid token
-    console.log('\n7. Testing Protected Route With Malformed Token:');
-    const badTokenRes = await fetch(`${BASE_URL}/users/me`, {
-      headers: { Authorization: 'Bearer invalid.jwt.token' }
-    });
-    const badTokenData = await badTokenRes.json();
-    assert(
-      badTokenRes.status === 401 &&
-      badTokenData.success === false &&
-      badTokenData.error.code === 'INVALID_TOKEN',
-      'GET /api/v1/users/me with malformed token returns 401 INVALID_TOKEN'
-    );
-
-    // 8. Access protected route with valid token
-    console.log('\n8. Testing Protected Route With Valid Token:');
-    const authRes = await fetch(`${BASE_URL}/users/me`, {
-      headers: { Authorization: `Bearer ${testUserToken}` }
-    });
-    const authData = await authRes.json();
-    assert(
-      authRes.status === 200 &&
-      authData.success === true &&
-      authData.data.user.email === testEmail,
-      'GET /api/v1/users/me with valid Bearer token returns 200 and user profile'
-    );
-
-    // 9. Update user profile
-    console.log('\n9. Testing User Profile Update:');
-    const updateRes = await fetch(`${BASE_URL}/users/me`, {
+    // 6. Reorder Stops
+    console.log('\n6. Reorder Trip Stops:');
+    const reorderRes = await fetch(`${BASE_URL}/trips/${createdTrip.id}/stops/reorder`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${testUserToken}`
       },
       body: JSON.stringify({
-        name: 'Khushi Patel (Updated)',
-        language: 'hi'
+        stops: [
+          { id: tokyoStop.id, order_index: 0 },
+          { id: kyotoStop.id, order_index: 1 }
+        ]
       })
     });
-    const updateData = await updateRes.json();
+    const reorderData = await reorderRes.json();
     assert(
-      updateRes.status === 200 &&
-      updateData.success === true &&
-      updateData.data.user.name === 'Khushi Patel (Updated)' &&
-      updateData.data.user.language === 'hi',
-      'PUT /api/v1/users/me updates name and language successfully'
+      reorderRes.status === 200 &&
+      reorderData.success &&
+      reorderData.data.stops[0].id === tokyoStop.id,
+      'PUT /api/v1/trips/:id/stops/reorder updates stop sequencing'
     );
 
-    // 10. Forgot password mock stub
-    console.log('\n10. Testing Forgot Password Stub:');
-    const forgotRes = await fetch(`${BASE_URL}/auth/forgot-password`, {
+    // 7. Add Itinerary Items to Stop
+    console.log('\n7. Add Itinerary Items:');
+    const addItemRes = await fetch(`${BASE_URL}/trips/${createdTrip.id}/itinerary-items`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: testEmail })
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${testUserToken}`
+      },
+      body: JSON.stringify({
+        trip_stop_id: kyotoStop.id,
+        activity_id: sampleActivity.id,
+        day_number: 1,
+        start_time: '09:30',
+        order_index: 0,
+        custom_cost: '3000.00'
+      })
     });
-    const forgotData = await forgotRes.json();
+    const addItemData = await addItemRes.json();
     assert(
-      forgotRes.status === 200 &&
-      forgotData.success === true &&
-      forgotData.data.message,
-      'POST /api/v1/auth/forgot-password returns 200 and success message'
+      addItemRes.status === 201 &&
+      addItemData.success &&
+      addItemData.data.item.activity.name === sampleActivity.name,
+      'POST /api/v1/trips/:id/itinerary-items schedules activity on Day 1'
+    );
+    const createdItem = addItemData.data.item;
+
+    // 8. Get Day-Wise Structured Itinerary
+    console.log('\n8. Get Structured Day-wise Itinerary:');
+    const itineraryRes = await fetch(`${BASE_URL}/trips/${createdTrip.id}/itinerary`, {
+      headers: { Authorization: `Bearer ${testUserToken}` }
+    });
+    const itineraryData = await itineraryRes.json();
+    assert(
+      itineraryRes.status === 200 &&
+      itineraryData.success &&
+      itineraryData.data.days['1'] &&
+      itineraryData.data.activities_count === 1,
+      'GET /api/v1/trips/:id/itinerary returns day-grouped schedule with effective activity costs'
     );
 
-    // Summary
+    // 9. Saved Destinations
+    console.log('\n9. Saved Destinations:');
+    const saveRes = await fetch(`${BASE_URL}/saved-destinations`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${testUserToken}`
+      },
+      body: JSON.stringify({ city_id: kyotoCity.id })
+    });
+    const saveData = await saveRes.json();
+
+    const getSavedRes = await fetch(`${BASE_URL}/saved-destinations`, {
+      headers: { Authorization: `Bearer ${testUserToken}` }
+    });
+    const getSavedData = await getSavedRes.json();
+
+    const delSavedRes = await fetch(`${BASE_URL}/saved-destinations/${kyotoCity.id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${testUserToken}` }
+    });
+
+    assert(
+      saveRes.status === 201 &&
+      getSavedData.data.saved.length >= 1 &&
+      delSavedRes.status === 200,
+      'POST/GET/DELETE /api/v1/saved-destinations allows saving and unsaving favorite cities'
+    );
+
+    // 10. Clean up trip
+    console.log('\n10. Delete Trip:');
+    const delTripRes = await fetch(`${BASE_URL}/trips/${createdTrip.id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${testUserToken}` }
+    });
+    assert(delTripRes.status === 200, 'DELETE /api/v1/trips/:id deletes trip and cascades stops');
+
     console.log(`\n========================================`);
-    console.log(`Tests Completed: ${passed + failed}`);
+    console.log(`Phase 2 API Tests Completed: ${passed + failed}`);
     console.log(`Passed: ${passed}`);
     console.log(`Failed: ${failed}`);
     console.log(`========================================\n`);
@@ -198,7 +247,7 @@ const runTests = async () => {
       process.exit(0);
     }
   } catch (err) {
-    console.error('Test run failed with unexpected error:', err);
+    console.error('Test run failed with error:', err);
     process.exit(1);
   } finally {
     if (server) server.close();

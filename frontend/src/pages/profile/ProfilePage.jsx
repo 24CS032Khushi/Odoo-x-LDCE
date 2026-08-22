@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { User, Mail, Globe, Image as ImageIcon, Calendar, Save, CheckCircle2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { User, Mail, Globe, Image as ImageIcon, Calendar, Save, Trash2, Heart, MapPin, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import Card, { CardHeader, CardTitle, CardDescription, CardBody, CardFooter } from '../../components/shared/Card';
+import Card, { CardHeader, CardTitle, CardDescription, CardBody, CardFooter, PhotoCard } from '../../components/shared/Card';
 import FormInput from '../../components/shared/FormInput';
 import Button from '../../components/shared/Button';
+import Modal from '../../components/shared/Modal';
+import api from '../../services/api';
 
 const languages = [
   { code: 'en', label: 'English (EN)' },
@@ -16,8 +19,9 @@ const languages = [
 ];
 
 export const ProfilePage = () => {
-  const { user, updateProfile } = useAuth();
-  const { success, error: toastError } = useToast();
+  const { user, updateProfile, logout } = useAuth();
+  const { success, info, error: toastError } = useToast();
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     name: user?.name || '',
@@ -27,6 +31,14 @@ export const ProfilePage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasChanged, setHasChanged] = useState(false);
 
+  // Saved destinations state
+  const [savedDestinations, setSavedDestinations] = useState([]);
+  const [loadingSaved, setLoadingSaved] = useState(true);
+
+  // Delete account state
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+
   useEffect(() => {
     if (user) {
       setFormData({
@@ -35,7 +47,32 @@ export const ProfilePage = () => {
         language: user.language || 'en',
       });
     }
+    fetchSavedDestinations();
   }, [user]);
+
+  const fetchSavedDestinations = async () => {
+    try {
+      const res = await api.get('/saved-destinations');
+      if (res.success) {
+        setSavedDestinations(res.data.saved);
+      }
+    } catch (err) {
+      console.error('Failed to fetch saved destinations', err);
+    } finally {
+      setLoadingSaved(false);
+    }
+  };
+
+  const handleRemoveSaved = async (cityId, e) => {
+    e.stopPropagation();
+    try {
+      await api.delete(`/saved-destinations/${cityId}`);
+      setSavedDestinations((prev) => prev.filter((c) => c.id !== cityId));
+      info('Destination removed from saved list');
+    } catch (err) {
+      toastError('Failed to remove destination');
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -73,6 +110,19 @@ export const ProfilePage = () => {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    setIsDeletingAccount(true);
+    try {
+      await api.delete('/users/me');
+      logout();
+      success('Account successfully deleted');
+      navigate('/login');
+    } catch (err) {
+      toastError(err.message || 'Failed to delete account');
+      setIsDeletingAccount(false);
+    }
+  };
+
   const formattedJoinDate = user?.created_at
     ? new Date(user.created_at).toLocaleDateString('en-US', {
         year: 'numeric',
@@ -82,16 +132,17 @@ export const ProfilePage = () => {
     : 'Recently';
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-10 animate-fade-in">
       <div>
         <h1 className="text-3xl font-bold text-abyss font-display tracking-tight">
-          User Profile & Preferences
+          Profile & Preferences
         </h1>
         <p className="text-sm text-slate-500 mt-1">
-          Manage your personal details, language preferences, and account configuration.
+          Manage your personal details, language preferences, saved places, and account settings.
         </p>
       </div>
 
+      {/* Account Settings Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Profile Card Summary */}
         <Card className="md:col-span-1 h-fit">
@@ -186,21 +237,19 @@ export const ProfilePage = () => {
                   <label htmlFor="language" className="text-xs font-semibold text-slate-700 tracking-wide">
                     Preferred Language
                   </label>
-                  <div className="relative">
-                    <select
-                      id="language"
-                      name="language"
-                      value={formData.language}
-                      onChange={handleChange}
-                      className="w-full text-sm bg-white text-abyss border border-slate-300 rounded-xl px-3.5 py-2.5 outline-none hover:border-slate-400 focus:border-ocean-teal focus:ring-2 focus:ring-ocean-teal/20 shadow-sm"
-                    >
-                      {languages.map((lang) => (
-                        <option key={lang.code} value={lang.code}>
-                          {lang.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <select
+                    id="language"
+                    name="language"
+                    value={formData.language}
+                    onChange={handleChange}
+                    className="w-full text-sm bg-white text-abyss border border-slate-300 rounded-xl px-3.5 py-2.5 outline-none hover:border-slate-400 focus:border-ocean-teal focus:ring-2 focus:ring-ocean-teal/20 shadow-sm"
+                  >
+                    {languages.map((lang) => (
+                      <option key={lang.code} value={lang.code}>
+                        {lang.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </CardBody>
 
@@ -220,6 +269,100 @@ export const ProfilePage = () => {
           </form>
         </div>
       </div>
+
+      {/* 2. Saved Destinations Gallery */}
+      <div className="space-y-4">
+        <div>
+          <h2 className="font-display text-2xl font-bold text-abyss tracking-tight">
+            Saved Destinations
+          </h2>
+          <p className="text-sm text-slate-500 mt-0.5">
+            Cities you’ve bookmarked for upcoming journeys
+          </p>
+        </div>
+
+        {savedDestinations.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {savedDestinations.map((city) => (
+              <div key={city.id} className="relative group">
+                <button
+                  type="button"
+                  onClick={(e) => handleRemoveSaved(city.id, e)}
+                  className="absolute top-4 right-4 z-20 w-8 h-8 rounded-full bg-black/40 text-rose-400 hover:text-white hover:bg-rose-500 flex items-center justify-center backdrop-blur-md transition-colors"
+                  title="Remove from saved"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+
+                <PhotoCard
+                  imageUrl={city.image_url}
+                  title={city.name}
+                  subtitle={`${city.country} • ${city.cost_index}x Cost`}
+                  badge={`${city.activities?.length || 5} Activities`}
+                  badgeColor="bg-ocean-deep/80 text-white"
+                  actionLabel="Explore City"
+                  onAction={() => navigate('/discover')}
+                />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white border border-slate-200 rounded-[20px] p-8 text-center max-w-md mx-auto space-y-2">
+            <Heart className="w-8 h-8 text-slate-300 mx-auto" />
+            <h4 className="font-bold text-sm text-abyss">No saved destinations yet</h4>
+            <p className="text-xs text-slate-500">
+              Browse the Discover page and tap the heart icon to save your favorite travel spots.
+            </p>
+            <div className="pt-2">
+              <Button variant="outline" size="sm" onClick={() => navigate('/discover')}>
+                Discover Cities
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 3. Danger Zone: Delete Account */}
+      <div className="bg-rose-50/50 border border-rose-200 rounded-[20px] p-6 space-y-3">
+        <div className="flex items-center gap-2 text-rose-700 font-bold text-sm">
+          <AlertTriangle className="w-4 h-4" />
+          <span>Danger Zone</span>
+        </div>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h4 className="font-bold text-sm text-rose-900">Delete Account</h4>
+            <p className="text-xs text-rose-700/80 mt-0.5">
+              Permanently delete your profile, trips, stops, and saved data. This action cannot be undone.
+            </p>
+          </div>
+          <Button
+            variant="danger"
+            size="md"
+            icon={Trash2}
+            onClick={() => setDeleteModalOpen(true)}
+          >
+            Delete Account
+          </Button>
+        </div>
+      </div>
+
+      {/* Delete Account Modal */}
+      <Modal
+        isOpen={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        title="Confirm Account Deletion"
+        description="Are you absolutely sure? All your trips, itineraries, and bookmarks will be erased permanently."
+        maxWidth="max-w-md"
+      >
+        <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
+          <Button variant="ghost" size="md" onClick={() => setDeleteModalOpen(false)}>
+            Cancel
+          </Button>
+          <Button variant="danger" size="md" onClick={handleDeleteAccount} isLoading={isDeletingAccount}>
+            Permanently Delete
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 };

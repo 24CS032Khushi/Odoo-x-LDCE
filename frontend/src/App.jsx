@@ -13,8 +13,9 @@ import SignupPage from './pages/auth/SignupPage';
 import DashboardPage from './pages/dashboard/DashboardPage';
 import ProfilePage from './pages/profile/ProfilePage';
 import TripsPage from './pages/trips/TripsPage';
+import ItineraryBuilderPage from './pages/trips/ItineraryBuilderPage';
+import ItineraryViewPage from './pages/trips/ItineraryViewPage';
 import DiscoverPage from './pages/discover/DiscoverPage';
-import ItineraryPage from './pages/itinerary/ItineraryPage';
 import BudgetPage from './pages/budget/BudgetPage';
 import CalendarPage from './pages/calendar/CalendarPage';
 
@@ -49,15 +50,17 @@ export function AppRoutes() {
         }
       />
 
-      {/* Protected App Routes with Layout */}
+      {/* Protected App Routes with Persistent Floating Navbar Layout */}
       <Route element={<ProtectedRoute />}>
         <Route element={<Layout />}>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/trips" element={<TripsPage />} />
+          <Route path="/trips/:id" element={<ItineraryViewPage />} />
+          <Route path="/trips/:id/builder" element={<ItineraryBuilderPage />} />
           <Route path="/discover" element={<DiscoverPage />} />
-          <Route path="/itinerary" element={<ItineraryPage />} />
+          <Route path="/itinerary" element={<TripsPage />} />
           <Route path="/budget" element={<BudgetPage />} />
           <Route path="/calendar" element={<CalendarPage />} />
         </Route>
