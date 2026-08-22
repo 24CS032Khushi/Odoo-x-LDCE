@@ -9,35 +9,29 @@ import {
   Tag,
   Layers,
   Edit2,
-  Share2,
   Sparkles,
   List,
   CalendarDays,
   ArrowRight,
   Wallet,
-  AlertTriangle,
-  Download,
-  Scale
+  HeartPulse,
+  Share2
 } from 'lucide-react';
-import Card, { CardHeader, CardTitle, CardDescription, CardBody } from '../../components/shared/Card';
+import Card from '../../components/shared/Card';
 import Button from '../../components/shared/Button';
 import { FullPageLoader } from '../../components/shared/Loader';
-import HealthScoreGauge from '../../components/analytics/HealthScoreGauge';
-import SanityCheckBanner from '../../components/analytics/SanityCheckBanner';
-import ShareTripModal from '../../components/trips/ShareTripModal';
-import ExportTripModal from '../../components/trips/ExportTripModal';
 import { useToast } from '../../context/ToastContext';
 import api from '../../services/api';
 
 export const ItineraryViewPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { toastError } = useToast();
+  const { success, error: toastError } = useToast();
 
   const [itinerary, setItinerary] = useState(null);
+  const [viewMode, setViewMode] = useState('list');
+  const [selectedDayFilter, setSelectedDayFilter] = useState('all');
   const [isLoading, setIsLoading] = useState(true);
-  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   useEffect(() => {
     fetchItinerary();
@@ -59,93 +53,53 @@ export const ItineraryViewPage = () => {
   };
 
   if (isLoading) {
-    return <FullPageLoader label="Generating day-wise itinerary & analytics..." />;
+    return <FullPageLoader label="Generating day-wise itinerary storyboard..." />;
   }
 
   if (!itinerary) return null;
 
   const dayNumbers = Object.keys(itinerary.days || {}).sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
-  const sanityFlags = itinerary.sanity_flags || [];
+
+  const filteredDays = selectedDayFilter === 'all'
+    ? dayNumbers
+    : dayNumbers.filter((d) => d === selectedDayFilter);
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Top Header Summary */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-6 border-b border-slate-200">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 text-xs font-bold text-ocean-teal uppercase tracking-wider">
+    <div className="space-y-10 animate-fade-in text-[#0F172A] font-sans">
+      {/* Top Header Summary in High-Contrast Tactile Card */}
+      <div className="neu-card p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-neu-extruded">
+        <div className="space-y-1.5 max-w-xl">
+          <div className="flex items-center gap-2 text-xs font-mono font-bold text-amber-primary uppercase tracking-wider">
             <span>Trip Itinerary</span>
             <span>•</span>
-            <span>{itinerary.stops_count} Cities</span>
+            <span>{itinerary.stops_count} Destinations</span>
             <span>•</span>
-            <span>{itinerary.activities_count} Experiences</span>
+            <span>{itinerary.activities_count} Scheduled Experiences</span>
           </div>
-          <h1 className="text-3xl sm:text-4xl font-bold text-abyss font-display tracking-tight">
-            {itinerary.trip_name}
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-display font-black text-[#0F172A] tracking-tight flex items-center gap-1.5">
+            <span>{itinerary.trip_name}</span>
+            <span className="text-amber-primary">.</span>
           </h1>
-          <p className="text-sm text-slate-500 flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-slate-400" />
+          <p className="text-sm text-slate-600 flex items-center gap-2 font-mono">
+            <Calendar className="w-4 h-4 text-amber-primary" />
             {itinerary.start_date
               ? `${new Date(itinerary.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${new Date(itinerary.end_date || itinerary.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
               : 'Flexible Schedule'}
           </p>
         </div>
 
-        {/* Action Controls */}
-        <div className="flex flex-wrap items-center gap-2.5 self-stretch sm:self-auto justify-start sm:justify-end">
-          {/* Export / Offline Sync Pill Button */}
-          <button
-            type="button"
-            onClick={() => setIsExportModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white hover:bg-slate-50 border border-slate-200 text-xs font-bold text-abyss shadow-xs transition-colors"
-          >
-            <Download className="w-3.5 h-3.5 text-ocean-teal" />
-            <span>Export (.ics)</span>
-          </button>
-
-          {/* Share Pill Button */}
-          <button
-            type="button"
-            onClick={() => setIsShareModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white hover:bg-slate-50 border border-slate-200 text-xs font-bold text-abyss shadow-xs transition-colors"
-          >
-            <Share2 className="w-3.5 h-3.5 text-ocean-teal" />
-            <span>Share</span>
-          </button>
-
-          {/* Compare Button */}
-          <Link to={`/trips/compare?tripA=${id}`}>
-            <button
-              type="button"
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white hover:bg-slate-50 border border-slate-200 text-xs font-bold text-abyss shadow-xs transition-colors"
-            >
-              <Scale className="w-3.5 h-3.5 text-ocean-teal" />
-              <span>Compare</span>
-            </button>
-          </Link>
-
-          {/* Quick Nav to Budget */}
+        {/* Intelligence Links & Builder Action */}
+        <div className="flex flex-wrap items-center gap-3">
           <Link to={`/budget?trip_id=${id}`}>
-            <button
-              type="button"
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white hover:bg-slate-50 border border-slate-200 text-xs font-bold text-abyss shadow-xs transition-colors"
-            >
-              <Wallet className="w-3.5 h-3.5 text-ocean-teal" />
-              <span>Budget</span>
-            </button>
+            <Button variant="secondary" size="md" icon={Wallet}>
+              Budget
+            </Button>
           </Link>
-
-          {/* Quick Nav to Calendar */}
           <Link to={`/calendar?trip_id=${id}`}>
-            <button
-              type="button"
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white hover:bg-slate-50 border border-slate-200 text-xs font-bold text-abyss shadow-xs transition-colors"
-            >
-              <CalendarDays className="w-3.5 h-3.5 text-ocean-teal" />
-              <span>Calendar</span>
-            </button>
+            <Button variant="secondary" size="md" icon={HeartPulse}>
+              Health Audit
+            </Button>
           </Link>
-
-          {/* Edit in Builder CTA */}
           <Link to={`/trips/${id}/builder`}>
             <Button variant="primary" size="md" icon={Edit2}>
               Builder
@@ -154,195 +108,209 @@ export const ItineraryViewPage = () => {
         </div>
       </div>
 
-      {/* Prominent Health Score Radial Gauge Component */}
-      <HealthScoreGauge scoreData={itinerary.health_score} />
-
-      {/* Global Sanity Check Flags Banner (if any) */}
-      {sanityFlags.length > 0 && (
-        <div className="space-y-3">
-          <h3 className="font-display font-bold text-lg text-abyss flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-[#c0392b]" />
-            <span>Schedule Flags & Pacing Warnings ({sanityFlags.length})</span>
-          </h3>
-          <div className="space-y-2.5">
-            {sanityFlags.map((flag) => (
-              <SanityCheckBanner key={flag.id} flag={flag} tripId={id} />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Financial & Route Summary Bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="p-4 rounded-[16px] bg-white border border-slate-200 shadow-xs">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Budget</span>
-          <p className="font-display font-bold text-lg text-abyss mt-0.5">
+      {/* Financial & Route Summary Bento Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
+        <div className="neu-card p-6 space-y-1 shadow-neu-extruded">
+          <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-500">Total Budget</span>
+          <p className="font-mono font-bold text-2xl text-[#0F172A] mt-1">
             ₹{parseFloat(itinerary.total_budget || 0).toLocaleString('en-IN')}
           </p>
         </div>
 
-        <div className="p-4 rounded-[16px] bg-white border border-slate-200 shadow-xs">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Est. Activities Cost</span>
-          <p className="font-display font-bold text-lg text-ocean-teal mt-0.5">
+        <div className="neu-card p-6 space-y-1 shadow-neu-extruded">
+          <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-500">Est. Activities Cost</span>
+          <p className="font-mono font-bold text-2xl text-amber-primary mt-1">
             ₹{parseFloat(itinerary.total_estimated_activities_cost || 0).toLocaleString('en-IN')}
           </p>
         </div>
 
-        <div className="p-4 rounded-[16px] bg-white border border-slate-200 shadow-xs">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Destinations</span>
-          <p className="font-display font-bold text-lg text-abyss mt-0.5">
+        <div className="neu-card p-6 space-y-1 shadow-neu-extruded">
+          <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-500">Destinations</span>
+          <p className="font-display font-black text-2xl text-[#0F172A] mt-1">
             {itinerary.stops_count} {itinerary.stops_count === 1 ? 'City' : 'Cities'}
           </p>
         </div>
 
-        <div className="p-4 rounded-[16px] bg-white border border-slate-200 shadow-xs">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Scheduled Days</span>
-          <p className="font-display font-bold text-lg text-abyss mt-0.5">
+        <div className="neu-card p-6 space-y-1 shadow-neu-extruded">
+          <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-500">Scheduled Days</span>
+          <p className="font-display font-black text-2xl text-teal-accent mt-1">
             {dayNumbers.length} {dayNumbers.length === 1 ? 'Day' : 'Days'}
           </p>
         </div>
       </div>
 
-      {/* Main Schedule Container: List Timeline View */}
-      <div className="space-y-8">
-        {dayNumbers.length > 0 ? (
-          dayNumbers.map((dayNum) => {
-            const dayItems = itinerary.days[dayNum] || [];
-            const dayCost = dayItems.reduce((acc, item) => acc + parseFloat(item.effective_cost || 0), 0);
-            const dayFlags = sanityFlags.filter((f) => f.day_number === parseInt(dayNum, 10));
+      {/* Mode Switch & Day Filter Pills in Tactile Bar */}
+      <div className="neu-card p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-neu-extruded">
+        {/* Day Filters */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 w-full sm:w-auto">
+          <button
+            type="button"
+            onClick={() => setSelectedDayFilter('all')}
+            className={`px-4 py-2 rounded-xl text-xs font-display font-bold whitespace-nowrap transition-all ${
+              selectedDayFilter === 'all'
+                ? 'neu-btn-primary text-white shadow-neu-amber'
+                : 'bg-[#E5EAF0] text-slate-600 hover:text-[#0F172A] border border-slate-300 shadow-neu-extruded-sm'
+            }`}
+          >
+            All Days ({dayNumbers.length})
+          </button>
+          {dayNumbers.map((d) => (
+            <button
+              key={d}
+              type="button"
+              onClick={() => setSelectedDayFilter(d)}
+              className={`px-4 py-2 rounded-xl text-xs font-display font-bold whitespace-nowrap transition-all ${
+                selectedDayFilter === d
+                  ? 'neu-btn-primary text-white shadow-neu-amber'
+                  : 'bg-[#E5EAF0] text-slate-600 hover:text-[#0F172A] border border-slate-300 shadow-neu-extruded-sm'
+              }`}
+            >
+              Day {d}
+            </button>
+          ))}
+        </div>
 
-            // Pacing Intensity Tag
-            const itemCount = dayItems.length;
-            const pacingLabel = itemCount >= 5 ? 'Packed Intensity' : itemCount >= 3 ? 'Balanced Pacing' : itemCount >= 1 ? 'Relaxed Exploration' : 'Light Buffer Day';
-            const pacingColor = itemCount >= 5 ? 'bg-amber-500/10 text-amber-800' : 'bg-ocean-teal/10 text-ocean-teal';
+        {/* View Mode Switch */}
+        <div className="inline-flex p-1 rounded-2xl bg-[#CBD5E1] shadow-neu-inset-sm self-end sm:self-auto border border-slate-300">
+          <button
+            type="button"
+            onClick={() => setViewMode('list')}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-display font-bold transition-all ${
+              viewMode === 'list'
+                ? 'bg-[#E5EAF0] text-[#0F172A] shadow-neu-extruded-sm border border-slate-300'
+                : 'text-slate-600 hover:text-[#0F172A]'
+            }`}
+          >
+            <List className="w-3.5 h-3.5" />
+            <span>Timeline</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setViewMode('grid')}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-display font-bold transition-all ${
+              viewMode === 'grid'
+                ? 'bg-[#E5EAF0] text-[#0F172A] shadow-neu-extruded-sm border border-slate-300'
+                : 'text-slate-600 hover:text-[#0F172A]'
+            }`}
+          >
+            <CalendarDays className="w-3.5 h-3.5" />
+            <span>Grid View</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Main Storyboard Body */}
+      {filteredDays.length > 0 ? (
+        <div className="space-y-8">
+          {filteredDays.map((dayNum) => {
+            const items = itinerary.days[dayNum] || [];
 
             return (
               <div
                 key={dayNum}
-                className="bg-white border border-slate-200 rounded-[20px] shadow-sm overflow-hidden"
+                className="neu-card p-6 sm:p-7 space-y-5 transition-all shadow-neu-extruded"
               >
-                {/* Day Header with Pacing Chip */}
-                <div className="px-6 py-4 bg-slate-50/80 border-b border-slate-200 flex items-center justify-between">
+                {/* Day Section Header */}
+                <div className="flex items-center justify-between border-b border-slate-200/80 pb-4">
                   <div className="flex items-center gap-3">
-                    <span className="px-3.5 py-1 rounded-full bg-abyss text-white font-display font-bold text-sm shadow-xs">
-                      Day {dayNum}
+                    <span className="w-9 h-9 rounded-2xl bg-[#DFE4EA] border border-slate-300 text-amber-primary font-display font-black text-sm flex items-center justify-center shadow-neu-inset-sm">
+                      D{dayNum}
                     </span>
-                    <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${pacingColor}`}>
-                      {pacingLabel}
-                    </span>
-                    <span className="text-xs text-slate-500 font-medium hidden sm:inline">
-                      ({itemCount} {itemCount === 1 ? 'Experience' : 'Experiences'})
-                    </span>
+                    <div>
+                      <h2 className="font-display font-extrabold text-lg text-[#0F172A]">
+                        Day {dayNum} Itinerary
+                      </h2>
+                      <span className="text-xs text-slate-500 font-sans">
+                        {items.length} {items.length === 1 ? 'experience' : 'experiences'} scheduled
+                      </span>
+                    </div>
                   </div>
-                  <span className="text-xs font-bold text-ocean-teal">
-                    Day Total: ₹{dayCost.toLocaleString('en-IN')}
-                  </span>
+
+                  <Link to={`/trips/${id}/builder`}>
+                    <Button variant="ghost" size="sm" icon={Edit2}>
+                      Edit Schedule
+                    </Button>
+                  </Link>
                 </div>
 
-                {/* Day Content */}
-                <div className="p-6 space-y-4">
-                  {/* Inline Day Flags */}
-                  {dayFlags.map((df) => (
-                    <SanityCheckBanner key={df.id} flag={df} tripId={id} className="mb-2" />
-                  ))}
+                {/* Day Activities */}
+                {items.length > 0 ? (
+                  <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-3'}>
+                    {items.map((item, idx) => (
+                      <div
+                        key={item.id}
+                        className={`p-4 rounded-2xl bg-[#DFE4EA] border border-slate-300 shadow-neu-inset-sm flex flex-col justify-between gap-3 ${
+                          viewMode === 'grid' ? 'h-full' : ''
+                        }`}
+                      >
+                        <div className="flex items-start gap-3.5">
+                          {item.activity?.image_url ? (
+                            <img
+                              src={item.activity.image_url}
+                              alt={item.activity.name}
+                              className="w-14 h-14 rounded-xl object-cover flex-shrink-0 border border-white shadow-xs"
+                            />
+                          ) : (
+                            <div className="w-14 h-14 rounded-xl bg-[#CBD5E1] border border-slate-300 flex items-center justify-center text-amber-primary flex-shrink-0">
+                              <Compass className="w-6 h-6" />
+                            </div>
+                          )}
 
-                  {dayItems.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-[16px] bg-slate-50/50 border border-slate-200/80 hover:border-slate-300 transition-colors"
-                    >
-                      <div className="flex items-start sm:items-center gap-4 min-w-0">
-                        <img
-                          src={item.activity.image_url}
-                          alt={item.activity.name}
-                          className="w-16 h-16 rounded-xl object-cover flex-shrink-0 shadow-xs"
-                        />
+                          <div className="space-y-1 flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-mono font-bold text-amber-primary flex items-center gap-1">
+                                <Clock className="w-3 h-3 text-amber-primary" />
+                                {item.start_time || '10:00'} (⏱️ {item.activity?.duration_mins || 60}m)
+                              </span>
+                              <span className="text-xs font-mono font-bold text-[#0F172A]">
+                                ₹{parseFloat(item.custom_cost ?? item.activity?.cost ?? 0).toLocaleString('en-IN')}
+                              </span>
+                            </div>
 
-                        <div className="min-w-0 space-y-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <h4 className="font-bold text-base text-abyss font-display">
-                              {item.activity.name}
+                            <h4 className="font-display font-extrabold text-sm text-[#0F172A] leading-tight truncate">
+                              {item.activity?.name || 'Custom Activity'}
                             </h4>
-                            <span className="px-2.5 py-0.5 rounded-full bg-ocean-teal/10 text-ocean-teal text-[11px] font-semibold">
-                              {item.stop_name}
-                            </span>
-                          </div>
 
-                          <p className="text-xs text-slate-500 line-clamp-1">
-                            {item.activity.description}
-                          </p>
-
-                          <div className="flex items-center gap-3 text-xs text-slate-500 pt-0.5">
-                            <span className="flex items-center gap-1 font-semibold text-slate-700">
-                              <Clock className="w-3.5 h-3.5 text-ocean-teal" />
-                              {item.start_time || '10:00'} ({item.activity.duration_minutes}m)
-                            </span>
-                            <span className="capitalize text-slate-400">
-                              🏷️ {item.activity.category}
-                            </span>
+                            <p className="text-xs text-slate-600 line-clamp-2 font-sans">
+                              {item.activity?.description || 'Curated itinerary destination highlight.'}
+                            </p>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="self-end sm:self-center text-right flex-shrink-0">
-                        <span className="text-sm font-bold text-abyss">
-                          {parseFloat(item.effective_cost) === 0 ? 'Free' : `₹${parseFloat(item.effective_cost).toLocaleString('en-IN')}`}
-                        </span>
+                        <div className="flex items-center justify-between pt-2 border-t border-slate-300/80 text-[11px] font-mono text-slate-500">
+                          <span className="capitalize font-bold text-teal-accent">
+                            🏷️ {item.activity?.category || 'General'}
+                          </span>
+                          <span className="truncate max-w-[150px]">
+                            📍 {item.trip_stop?.city?.name || 'Destination'}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-500 italic py-2">No activities scheduled for Day {dayNum}.</p>
+                )}
               </div>
             );
-          })
-        ) : (
-          <div className="bg-white border border-slate-200 rounded-[20px] p-12 text-center max-w-md mx-auto space-y-3">
-            <div className="w-12 h-12 rounded-full bg-ocean-teal/10 text-ocean-teal flex items-center justify-center mx-auto">
-              <Calendar className="w-6 h-6" />
-            </div>
-            <h3 className="font-display font-bold text-lg text-abyss">No activities scheduled</h3>
-            <p className="text-xs text-slate-500">
-              Switch to the Itinerary Builder to add activities and set up your daily timeline.
-            </p>
-            <Link to={`/trips/${id}/builder`}>
-              <Button variant="primary" size="md" icon={Edit2}>
-                Open Itinerary Builder
-              </Button>
-            </Link>
+          })}
+        </div>
+      ) : (
+        <div className="neu-card p-14 text-center max-w-md mx-auto space-y-4 shadow-neu-extruded">
+          <div className="w-14 h-14 rounded-2xl bg-[#DFE4EA] border border-slate-300 text-amber-primary flex items-center justify-center mx-auto shadow-neu-inset">
+            <Calendar className="w-7 h-7" />
           </div>
-        )}
-      </div>
-
-      {/* Share Modal */}
-      {itinerary && (
-        <ShareTripModal
-          isOpen={isShareModalOpen}
-          onClose={() => setIsShareModalOpen(false)}
-          trip={{
-            id: itinerary.trip_id,
-            name: itinerary.trip_name,
-            is_public: itinerary.is_public,
-            share_slug: itinerary.share_slug
-          }}
-          onTripUpdated={(data) => {
-            setItinerary((prev) => ({ ...prev, is_public: data.is_public, share_slug: data.share_slug }));
-          }}
-        />
-      )}
-
-      {/* Export / Calendar Sync Modal */}
-      {itinerary && (
-        <ExportTripModal
-          isOpen={isExportModalOpen}
-          onClose={() => setIsExportModalOpen(false)}
-          trip={{
-            id: itinerary.trip_id,
-            name: itinerary.trip_name,
-            start_date: itinerary.start_date,
-            end_date: itinerary.end_date
-          }}
-          itineraryDays={itinerary.days}
-        />
+          <h3 className="font-display font-bold text-xl text-[#0F172A]">No activities scheduled</h3>
+          <p className="text-xs text-slate-500">
+            Open the visual Builder to start adding destination stops and curating attractions.
+          </p>
+          <Link to={`/trips/${id}/builder`}>
+            <Button variant="primary" size="md" icon={Edit2}>
+              Open Itinerary Builder
+            </Button>
+          </Link>
+        </div>
       )}
     </div>
   );

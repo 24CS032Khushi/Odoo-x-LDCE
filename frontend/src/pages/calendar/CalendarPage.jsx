@@ -71,17 +71,12 @@ export const CalendarPage = () => {
   const fetchItinerary = async (tripId) => {
     setIsLoading(true);
     try {
-      const res = await api.get(`/trips/${tripId}/itinerary`);
+      const res = await api.get(`/trips/${tripId}`);
       if (res.success) {
-        setItinerary(res.data);
-        const days = Object.keys(res.data.days || {}).map(Number);
-        if (days.length > 0) {
-          setSelectedDay(days[0]);
-          setExpandedDays({ [days[0]]: true });
-        }
+        setItinerary(res.data.trip);
       }
     } catch (err) {
-      toastError('Failed to load itinerary calendar');
+      toastError('Failed to load itinerary schedule');
     } finally {
       setIsLoading(false);
     }
@@ -96,35 +91,39 @@ export const CalendarPage = () => {
 
   const handleUpdateItemTime = async (itemId, newTime) => {
     try {
-      const res = await api.put(`/trips/${selectedTripId}/itinerary-items/${itemId}`, {
+      await api.put(`/trips/${selectedTripId}/itinerary-items/${itemId}`, {
         start_time: newTime
       });
-      if (res.success) {
-        success('Schedule time updated');
-        setEditingItemId(null);
-        fetchItinerary(selectedTripId);
-      }
+      success('Schedule updated');
+      setEditingItemId(null);
+      fetchItinerary(selectedTripId);
     } catch (err) {
       toastError(err.message || 'Failed to update time');
     }
   };
 
+  const handleDeleteItem = async (itemId) => {
+    try {
+      await api.delete(`/trips/${selectedTripId}/itinerary-items/${itemId}`);
+      success('Activity removed from schedule');
+      fetchItinerary(selectedTripId);
+    } catch (err) {
+      toastError('Failed to remove item');
+    }
+  };
+
   const handleMoveItemToDay = async (itemId, targetDay) => {
     try {
-      const res = await api.put(`/trips/${selectedTripId}/itinerary-items/${itemId}`, {
+      await api.put(`/trips/${selectedTripId}/itinerary-items/${itemId}`, {
         day_number: targetDay
       });
-      if (res.success) {
-        success(`Activity moved to Day ${targetDay}`);
-        setExpandedDays((prev) => ({ ...prev, [targetDay]: true }));
-        fetchItinerary(selectedTripId);
-      }
+      success(`Moved activity to Day ${targetDay}`);
+      fetchItinerary(selectedTripId);
     } catch (err) {
       toastError(err.message || 'Failed to move activity');
     }
   };
 
-  // Drag and Drop handlers
   const handleDragStart = (e, item) => {
     setDraggedItem(item);
     e.dataTransfer.setData('text/plain', item.id);
@@ -143,26 +142,27 @@ export const CalendarPage = () => {
   };
 
   if (isLoading && !itinerary) {
-    return <FullPageLoader label="Loading interactive trip calendar & timeline..." />;
+    return <FullPageLoader label="Calculating schedule timeline & pacing..." />;
   }
 
   if (trips.length === 0) {
     return (
-      <div className="space-y-8 animate-fade-in">
-        <div>
-          <h1 className="text-3xl font-bold text-abyss font-display tracking-tight">
-            Trip Calendar & Timeline
+      <div className="space-y-8 animate-fade-in text-[#0F172A] font-sans">
+        <div className="neu-card p-6 sm:p-8 shadow-neu-extruded">
+          <h1 className="text-3xl sm:text-4xl font-black font-display text-[#0F172A] tracking-tight flex items-center gap-1">
+            <span>Trip Calendar & Timeline</span>
+            <span className="text-amber-primary">.</span>
           </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Interactive multi-day schedule, buffer pacing, and conflict resolution
+          <p className="text-sm text-slate-600 mt-1 font-sans">
+            Interactive multi-day schedule, buffer pacing, and conflict resolution.
           </p>
         </div>
-        <div className="bg-white border border-slate-200 rounded-[20px] p-16 text-center max-w-md mx-auto space-y-4 shadow-sm">
-          <div className="w-16 h-16 rounded-full bg-ocean-teal/10 text-ocean-teal flex items-center justify-center mx-auto">
-            <Calendar className="w-8 h-8" />
+        <div className="neu-card p-14 text-center max-w-md mx-auto space-y-4 shadow-neu-extruded">
+          <div className="w-14 h-14 rounded-2xl bg-[#DFE4EA] border border-slate-300 text-amber-primary flex items-center justify-center mx-auto shadow-neu-inset">
+            <Calendar className="w-7 h-7" />
           </div>
-          <h3 className="font-display font-bold text-xl text-abyss">No itineraries to display</h3>
-          <p className="text-sm text-slate-500">
+          <h3 className="font-display font-bold text-xl text-[#0F172A]">No itineraries to display</h3>
+          <p className="text-xs text-slate-500">
             Create a trip and schedule activities to visualize your journey on the calendar.
           </p>
           <Link to="/trips">
@@ -175,27 +175,36 @@ export const CalendarPage = () => {
     );
   }
 
-  const dayNumbers = Object.keys(itinerary?.days || {}).map(Number).sort((a, b) => a - b);
-  const flags = itinerary?.sanity_flags || [];
+  // Calculate total days from items
+  const allItems = itinerary?.itinerary_items || [];
+  const maxDay = allItems.reduce((max, item) => Math.max(max, item.day_number || 1), 1);
+  const totalDays = Math.max(maxDay, 3); // minimum 3 day slots
+
+  // Group items by day
+  const itemsByDay = {};
+  for (let d = 1; d <= totalDays; d++) {
+    itemsByDay[d] = allItems.filter((i) => i.day_number === d).sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+  }
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Header & Trip Switcher */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-6 border-b border-slate-200">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 text-xs font-bold text-ocean-teal uppercase tracking-wider">
+    <div className="space-y-10 animate-fade-in text-[#0F172A] font-sans">
+      {/* Top Header & Trip Selector in High-Contrast Tactile Card */}
+      <div className="neu-card p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-neu-extruded">
+        <div className="space-y-1.5 max-w-xl">
+          <div className="flex items-center gap-2 text-xs font-mono font-bold text-amber-primary uppercase tracking-wider">
             <Calendar className="w-3.5 h-3.5" />
-            <span>Timeline Visualizer</span>
+            <span>Interactive Pacing Calendar</span>
           </div>
-          <h1 className="text-3xl sm:text-4xl font-bold text-abyss font-display tracking-tight">
-            Trip Calendar & Pacing
+          <h1 className="text-3xl sm:text-4xl font-display font-black text-[#0F172A] tracking-tight flex items-center gap-1.5">
+            <span>Trip Schedule & Timeline</span>
+            <span className="text-amber-primary">.</span>
           </h1>
-          <p className="text-sm text-slate-500">
-            Drag-and-drop rescheduling across days with real-time health score calculation
+          <p className="text-sm text-slate-600 font-sans">
+            Chronological multi-day timeline, activity rescheduling, and pacing diagnostics.
           </p>
         </div>
 
-        {/* Controls */}
+        {/* Trip Switcher & Quick Action */}
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <select
             value={selectedTripId || ''}
@@ -204,258 +213,206 @@ export const CalendarPage = () => {
               setSelectedTripId(id);
               setSearchParams({ trip_id: id });
             }}
-            className="px-4 py-2.5 rounded-full bg-white border border-slate-200 text-xs font-bold text-abyss shadow-xs focus:outline-none focus:border-ocean-teal cursor-pointer"
+            className="px-4 py-2.5 rounded-2xl bg-[#DFE4EA] border border-slate-300 text-xs font-mono font-bold text-[#0F172A] shadow-neu-inset-sm focus:outline-none focus:border-amber-primary cursor-pointer"
           >
             {trips.map((t) => (
-              <option key={t.id} value={t.id}>
+              <option key={t.id} value={t.id} className="bg-[#E5EAF0] text-[#0F172A]">
                 📍 {t.name}
               </option>
             ))}
           </select>
 
-          <Link to={`/trips/${selectedTripId}/builder`}>
-            <Button variant="primary" size="md">
-              Open Builder
+          <Link to={`/trips/${selectedTripId}`}>
+            <Button variant="secondary" size="md">
+              Full Itinerary
             </Button>
           </Link>
         </div>
       </div>
 
-      {itinerary && (
-        <>
-          {/* Top Row: Health Score Radial Gauge */}
-          <HealthScoreGauge scoreData={itinerary.health_score} />
+      {/* Sanity Check Alerts Banner for this trip */}
+      {selectedTripId && <SanityCheckBanner tripId={selectedTripId} />}
 
-          {/* Active Sanity Flags Section (if any detected) */}
-          {flags.length > 0 && (
-            <div className="space-y-3">
-              <h3 className="font-display font-bold text-lg text-abyss flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-[#c0392b]" />
-                <span>Active Schedule & Route Flags ({flags.length})</span>
-              </h3>
-              <div className="space-y-2.5">
-                {flags.map((flag) => (
-                  <SanityCheckBanner
-                    key={flag.id}
-                    flag={flag}
-                    tripId={selectedTripId}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
+      {/* Day Selector Pills Bar */}
+      <div className="neu-card p-3 flex items-center gap-2 overflow-x-auto shadow-neu-extruded">
+        {Array.from({ length: totalDays }, (_, i) => i + 1).map((dayNum) => {
+          const itemCount = itemsByDay[dayNum]?.length || 0;
+          const isSelected = selectedDay === dayNum;
 
-          {/* Interactive Multi-Day Calendar / Timeline Container */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-display font-bold text-xl text-abyss">
-                Day-by-Day Timeline & Rescheduling
-              </h3>
-              <span className="text-xs text-slate-500 font-medium">
-                💡 Drag activities or select a day below to expand
+          return (
+            <button
+              key={dayNum}
+              type="button"
+              onClick={() => setSelectedDay(dayNum)}
+              className={`px-5 py-2.5 rounded-2xl text-xs font-display font-bold whitespace-nowrap transition-all flex items-center gap-2 ${
+                isSelected
+                  ? 'neu-btn-primary text-white shadow-neu-amber'
+                  : 'bg-[#DFE4EA] text-slate-600 hover:text-[#0F172A] border border-slate-300 shadow-neu-extruded-sm'
+              }`}
+            >
+              <span>Day {dayNum}</span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${
+                isSelected ? 'bg-white/20 text-white' : 'bg-[#CBD5E1] text-slate-700'
+              }`}>
+                {itemCount}
               </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Main Timeline View */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-7">
+        {/* Left 2 Cols: Active Day Activities List */}
+        <div className="lg:col-span-2 space-y-4">
+          <div className="neu-card p-6 flex items-center justify-between shadow-neu-extruded">
+            <div>
+              <h2 className="font-display font-black text-xl text-[#0F172A] flex items-center gap-2">
+                <span>Day {selectedDay} Schedule</span>
+                <span className="text-amber-primary">.</span>
+              </h2>
+              <p className="text-xs text-slate-600 font-sans mt-0.5">
+                {itemsByDay[selectedDay]?.length || 0} activities scheduled for this day
+              </p>
             </div>
 
-            {/* Daily Grid Cards on Foam */}
-            <div className="space-y-4">
-              {dayNumbers.length > 0 ? (
-                dayNumbers.map((dayNum) => {
-                  const dayItems = itinerary.days[dayNum] || [];
-                  const isExpanded = !!expandedDays[dayNum];
-                  const isDaySelected = selectedDay === dayNum;
-                  const dayFlags = flags.filter((f) => f.day_number === dayNum);
-                  const hasAlert = dayFlags.some((f) => f.severity === 'alert');
-                  const hasWarning = dayFlags.some((f) => f.severity === 'warning');
+            <span className="text-xs font-mono font-bold text-amber-primary bg-[#DFE4EA] px-3 py-1.5 rounded-xl border border-slate-300 shadow-neu-inset-sm">
+              Day {selectedDay} of {totalDays}
+            </span>
+          </div>
 
-                  const dayCost = dayItems.reduce((acc, item) => acc + parseFloat(item.effective_cost || 0), 0);
+          {itemsByDay[selectedDay] && itemsByDay[selectedDay].length > 0 ? (
+            <div className="space-y-3">
+              {itemsByDay[selectedDay].map((item, idx) => (
+                <div
+                  key={item.id}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, item)}
+                  className="neu-card p-5 flex items-center justify-between gap-4 group cursor-grab active:cursor-grabbing hover:border-amber-primary/40 transition-all shadow-neu-extruded"
+                >
+                  <div className="flex items-center gap-3.5">
+                    <GripVertical className="w-4 h-4 text-slate-400 group-hover:text-amber-primary transition-colors" />
 
-                  return (
-                    <div
-                      key={dayNum}
-                      onDragOver={handleDragOver}
-                      onDrop={(e) => handleDropOnDay(e, dayNum)}
-                      className={`rounded-[20px] bg-white border transition-all overflow-hidden shadow-xs ${
-                        hasAlert
-                          ? 'border-l-4 border-l-[#c0392b] border-slate-200'
-                          : hasWarning
-                          ? 'border-l-4 border-l-amber-500 border-slate-200'
-                          : 'border-slate-200'
-                      } ${isDaySelected ? 'ring-2 ring-ocean-teal/20 bg-ocean-teal/[0.02]' : ''}`}
-                    >
-                      {/* Day Header Accordion Toggle */}
-                      <div
-                        onClick={() => {
-                          setSelectedDay(dayNum);
-                          toggleDayExpansion(dayNum);
-                        }}
-                        className="px-6 py-4 flex items-center justify-between cursor-pointer hover:bg-slate-50/80 transition-colors select-none"
-                      >
-                        <div className="flex items-center gap-3.5">
-                          <span
-                            className={`px-3.5 py-1 rounded-full text-xs font-display font-bold transition-colors ${
-                              isDaySelected
-                                ? 'bg-ocean-teal text-white shadow-xs'
-                                : 'bg-abyss text-white'
-                            }`}
-                          >
-                            Day {dayNum}
-                          </span>
+                    <div className="w-8 h-8 rounded-xl bg-[#DFE4EA] border border-slate-300 text-slate-700 flex items-center justify-center font-mono text-xs font-bold shadow-neu-inset-sm">
+                      {idx + 1}
+                    </div>
 
-                          <span className="text-xs font-semibold text-slate-700">
-                            {dayItems.length} {dayItems.length === 1 ? 'Activity' : 'Activities'}
-                          </span>
-
-                          {dayFlags.length > 0 && (
-                            <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
-                              hasAlert ? 'bg-red-500/10 text-[#c0392b]' : 'bg-amber-500/10 text-amber-700'
-                            }`}>
-                              <AlertTriangle className="w-3 h-3" />
-                              {dayFlags.length} {dayFlags.length === 1 ? 'Flag' : 'Flags'}
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="flex items-center gap-4">
-                          <span className="text-xs font-bold text-ocean-teal hidden sm:inline">
-                            Day Spend: ₹{dayCost.toLocaleString('en-IN')}
-                          </span>
-                          <button
-                            type="button"
-                            className="p-1.5 rounded-full text-slate-400 hover:text-abyss hover:bg-slate-100 transition-colors"
-                          >
-                            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                          </button>
-                        </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-display font-bold text-base text-[#0F172A]">
+                          {item.activity?.name || 'Custom Activity'}
+                        </h4>
+                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-800">
+                          {item.activity?.category || 'Activity'}
+                        </span>
                       </div>
 
-                      {/* Day Content Area (Accordion) */}
-                      {isExpanded && (
-                        <div className="p-6 pt-2 border-t border-slate-100 space-y-3 animate-fade-in">
-                          {/* Inline Day Flags */}
-                          {dayFlags.map((df) => (
-                            <SanityCheckBanner key={df.id} flag={df} tripId={selectedTripId} className="mb-2" />
-                          ))}
-
-                          {dayItems.length > 0 ? (
-                            <div className="space-y-2.5">
-                              {dayItems.map((item) => (
-                                <div
-                                  key={item.id}
-                                  draggable
-                                  onDragStart={(e) => handleDragStart(e, item)}
-                                  className="p-4 rounded-[16px] bg-slate-50/70 border border-slate-200/80 hover:border-slate-300 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 cursor-grab active:cursor-grabbing group"
-                                >
-                                  <div className="flex items-center gap-3.5 min-w-0">
-                                    <div className="text-slate-300 group-hover:text-slate-500 transition-colors flex-shrink-0">
-                                      <GripVertical className="w-4 h-4" />
-                                    </div>
-
-                                    <img
-                                      src={item.activity.image_url}
-                                      alt={item.activity.name}
-                                      className="w-12 h-12 rounded-xl object-cover flex-shrink-0 shadow-xs"
-                                    />
-
-                                    <div className="min-w-0 space-y-0.5">
-                                      <div className="flex items-center gap-2">
-                                        <h5 className="font-bold text-sm text-abyss font-display truncate">
-                                          {item.activity.name}
-                                        </h5>
-                                        <span className="px-2 py-0.5 rounded-full bg-ocean-teal/10 text-ocean-teal text-[10px] font-semibold flex-shrink-0">
-                                          {item.stop_name}
-                                        </span>
-                                      </div>
-
-                                      <div className="flex items-center gap-3 text-xs text-slate-500">
-                                        {/* Inline editable time */}
-                                        {editingItemId === item.id ? (
-                                          <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                                            <input
-                                              type="time"
-                                              value={editTimeVal}
-                                              onChange={(e) => setEditTimeVal(e.target.value)}
-                                              className="px-2 py-0.5 rounded-lg border border-ocean-teal text-xs font-semibold text-abyss bg-white"
-                                            />
-                                            <button
-                                              type="button"
-                                              onClick={() => handleUpdateItemTime(item.id, editTimeVal)}
-                                              className="p-1 rounded-full bg-ocean-teal text-white hover:bg-ocean-deep transition-colors"
-                                              title="Save time"
-                                            >
-                                              <Check className="w-3 h-3" />
-                                            </button>
-                                          </div>
-                                        ) : (
-                                          <button
-                                            type="button"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setEditingItemId(item.id);
-                                              setEditTimeVal(item.start_time || '10:00');
-                                            }}
-                                            className="flex items-center gap-1 font-semibold text-slate-700 hover:text-ocean-teal transition-colors"
-                                            title="Click to edit time"
-                                          >
-                                            <Clock className="w-3 h-3 text-ocean-teal" />
-                                            <span>{item.start_time || '10:00'} ({item.activity.duration_minutes}m)</span>
-                                            <Edit2 className="w-2.5 h-2.5 opacity-60 ml-0.5" />
-                                          </button>
-                                        )}
-
-                                        <span className="capitalize text-slate-400">
-                                          🏷️ {item.activity.category}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  <div className="self-end sm:self-center flex items-center gap-3 flex-shrink-0">
-                                    <span className="text-xs font-bold text-abyss">
-                                      {parseFloat(item.effective_cost) === 0 ? 'Free' : `₹${parseFloat(item.effective_cost).toLocaleString('en-IN')}`}
-                                    </span>
-
-                                    {/* Quick Move Day Dropdown */}
-                                    <select
-                                      value={dayNum}
-                                      onChange={(e) => handleMoveItemToDay(item.id, parseInt(e.target.value, 10))}
-                                      onClick={(e) => e.stopPropagation()}
-                                      className="px-2.5 py-1 rounded-full bg-white border border-slate-200 text-[11px] font-semibold text-slate-700 focus:outline-none focus:border-ocean-teal cursor-pointer"
-                                      title="Move to another day"
-                                    >
-                                      {dayNumbers.map((d) => (
-                                        <option key={d} value={d}>
-                                          Day {d}
-                                        </option>
-                                      ))}
-                                    </select>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="p-6 rounded-[16px] bg-slate-50/50 border border-dashed border-slate-200 text-center space-y-1">
-                              <p className="text-xs font-semibold text-slate-500">
-                                Light Buffer / Rest Day (0 activities scheduled)
-                              </p>
-                              <p className="text-[11px] text-slate-400">
-                                Drag activities here from other days to populate this date.
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      )}
+                      <div className="flex items-center gap-3 text-xs text-slate-500 font-mono">
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3 text-amber-primary" />
+                          {item.start_time || '09:00'} (⏱️ {item.activity?.duration_mins || 60}m)
+                        </span>
+                        <span>•</span>
+                        <span className="font-bold text-[#0F172A]">
+                          ₹{parseFloat(item.activity?.cost || 0).toLocaleString('en-IN')}
+                        </span>
+                      </div>
                     </div>
-                  );
-                })
-              ) : (
-                <div className="p-12 text-center bg-white rounded-[20px] border border-slate-200">
-                  <p className="text-xs text-slate-500">No scheduled days found in itinerary.</p>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-2">
+                    {/* Reschedule Dropdown */}
+                    <select
+                      value={item.day_number}
+                      onChange={(e) => handleMoveItemToDay(item.id, parseInt(e.target.value, 10))}
+                      className="px-2.5 py-1 rounded-xl bg-[#DFE4EA] border border-slate-300 text-xs font-mono font-bold text-[#0F172A] shadow-neu-inset-sm cursor-pointer outline-none"
+                    >
+                      {Array.from({ length: totalDays }, (_, i) => i + 1).map((d) => (
+                        <option key={d} value={d}>
+                          Move to Day {d}
+                        </option>
+                      ))}
+                    </select>
+
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteItem(item.id)}
+                      className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                      title="Remove activity"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
-              )}
+              ))}
+            </div>
+          ) : (
+            <div
+              onDragOver={handleDragOver}
+              onDrop={(e) => handleDropOnDay(e, selectedDay)}
+              className="neu-card p-12 text-center space-y-3 border-dashed border-2 border-slate-300 shadow-neu-extruded"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-[#DFE4EA] border border-slate-300 text-amber-primary flex items-center justify-center mx-auto shadow-neu-inset">
+                <Calendar className="w-6 h-6" />
+              </div>
+              <h3 className="font-display font-bold text-base text-[#0F172A]">No activities on Day {selectedDay}</h3>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto font-sans">
+                Drag an activity from another day here or open the Itinerary Builder to add items from the catalog.
+              </p>
+              <Link to={`/trips/${selectedTripId}`}>
+                <Button variant="outline" size="sm">
+                  Add Activities from Itinerary
+                </Button>
+              </Link>
+            </div>
+          )}
+        </div>
+
+        {/* Right 1 Col: All Days Summary & Drag Targets */}
+        <div className="space-y-4">
+          <div className="neu-card p-6 space-y-4 shadow-neu-extruded">
+            <h3 className="font-display font-extrabold text-base text-[#0F172A]">
+              Itinerary Overview ({totalDays} Days)
+            </h3>
+            <p className="text-xs text-slate-500 font-sans">
+              Drag any activity and drop it onto a day card below to reschedule.
+            </p>
+
+            <div className="space-y-2.5">
+              {Array.from({ length: totalDays }, (_, i) => i + 1).map((d) => {
+                const count = itemsByDay[d]?.length || 0;
+                const isCurrent = selectedDay === d;
+
+                return (
+                  <div
+                    key={d}
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => handleDropOnDay(e, d)}
+                    onClick={() => setSelectedDay(d)}
+                    className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
+                      isCurrent
+                        ? 'bg-[#CBD5E1] border-amber-primary shadow-neu-inset-sm'
+                        : 'bg-[#DFE4EA] border-slate-300 hover:border-slate-400 shadow-neu-extruded-sm'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-3.5 h-3.5 text-amber-primary" />
+                      <span className="font-display font-bold text-xs text-[#0F172A]">
+                        Day {d}
+                      </span>
+                    </div>
+
+                    <span className="text-[11px] font-mono text-slate-600">
+                      {count} {count === 1 ? 'activity' : 'activities'}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </div>
-        </>
-      )}
+        </div>
+      </div>
     </div>
   );
 };

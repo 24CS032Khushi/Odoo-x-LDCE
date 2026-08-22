@@ -12,6 +12,7 @@ export const getMe = async (req, res, next) => {
         role: true,
         photo_url: true,
         language: true,
+        interests: true,
         last_active: true,
         created_at: true
       }
@@ -32,7 +33,7 @@ export const getMe = async (req, res, next) => {
 
 export const updateMe = async (req, res, next) => {
   try {
-    const { name, photo_url, language } = req.body;
+    const { name, photo_url, language, interests } = req.body;
     const updateData = {};
 
     if (name !== undefined) {
@@ -50,6 +51,14 @@ export const updateMe = async (req, res, next) => {
       updateData.language = language;
     }
 
+    if (interests !== undefined) {
+      if (Array.isArray(interests)) {
+        updateData.interests = interests.join(',');
+      } else if (typeof interests === 'string') {
+        updateData.interests = interests;
+      }
+    }
+
     if (Object.keys(updateData).length === 0) {
       throw new AppError('No valid fields provided to update.', 400, 'VALIDATION_ERROR');
     }
@@ -64,6 +73,7 @@ export const updateMe = async (req, res, next) => {
         role: true,
         photo_url: true,
         language: true,
+        interests: true,
         last_active: true,
         created_at: true
       }

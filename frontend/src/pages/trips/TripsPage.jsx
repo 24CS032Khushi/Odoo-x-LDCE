@@ -1,42 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import {
-  Compass,
-  Calendar,
-  Plus,
-  MapPin,
-  Trash2,
-  Edit2,
-  ArrowRight,
-  Eye,
-  Layers,
-  Wallet,
-  Share2,
-  Activity,
-  Scale
-} from 'lucide-react';
+import { Compass, Calendar, Plus, MapPin, Trash2, Edit2, ArrowRight, Eye, Layers, Share2, HeartPulse, Check, Scale } from 'lucide-react';
 import { PhotoCard } from '../../components/shared/Card';
 import Button from '../../components/shared/Button';
 import Modal from '../../components/shared/Modal';
 import CreateTripModal from '../../components/trips/CreateTripModal';
-import ShareTripModal from '../../components/trips/ShareTripModal';
 import { useToast } from '../../context/ToastContext';
 import api from '../../services/api';
 
 export const TripsPage = () => {
-  const { success, error: toastError } = useToast();
+  const { success, info, error: toastError } = useToast();
   const navigate = useNavigate();
 
   const [trips, setTrips] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editingTrip, setEditingTrip] = useState(null);
-  const [sharingTrip, setSharingTrip] = useState(null);
 
-  // Delete modal state
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [tripToDelete, setTripToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [sharedTrip, setSharedTrip] = useState(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     fetchTrips();
@@ -73,32 +60,45 @@ export const TripsPage = () => {
     }
   };
 
+  const handleOpenShare = (trip, e) => {
+    e?.stopPropagation?.();
+    setSharedTrip(trip);
+    setCopied(false);
+    setShareModalOpen(true);
+  };
+
+  const copyShareLink = () => {
+    if (!sharedTrip) return;
+    const url = `${window.location.origin}/share/${sharedTrip.share_slug}`;
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    success('Public share link copied to clipboard!');
+    setTimeout(() => setCopied(false), 3000);
+  };
+
   const formatDateRange = (start, end) => {
-    if (!start && !end) return 'Flexible Schedule';
-    if (start && !end) return `Starts ${new Date(start).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+    if (!start && !end) return 'Flexible dates';
+    if (start && !end) return `Starts ${new Date(start).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
     return `${new Date(start).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${new Date(end).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
   };
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+    <div className="space-y-10 animate-fade-in text-[#0F172A] font-sans">
+      {/* Page Header in High-Contrast Tactile Card */}
+      <div className="neu-card p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-neu-extruded">
         <div>
-          <h1 className="text-3xl font-bold text-abyss font-display tracking-tight">
-            My Travel Itineraries
+          <h1 className="text-3xl sm:text-4xl font-display font-black text-[#0F172A] tracking-tight flex items-center gap-1.5">
+            <span>My Travel Itineraries</span>
+            <span className="text-amber-primary">.</span>
           </h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className="text-sm text-slate-600 mt-1 font-sans">
             Manage, schedule, budget, and share all your multi-destination journeys.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <Link to="/trips/compare">
-            <Button
-              variant="secondary"
-              size="md"
-              icon={Scale}
-            >
+            <Button variant="secondary" size="md" icon={Scale}>
               Compare Drafts
             </Button>
           </Link>
@@ -116,125 +116,116 @@ export const TripsPage = () => {
         </div>
       </div>
 
-      {/* Trips Grid */}
+      {/* Trips Grid with Photographic Cards */}
       {trips.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7">
           {trips.map((trip) => {
             const stopCount = trip.trip_stops?.length || 0;
-            const stopCities = trip.trip_stops?.map((s) => s.city.name).join(' → ') || 'No stops added';
+            const stopCities = trip.trip_stops?.map((s) => s.city.name).join(' → ') || 'No destination stops yet';
 
             return (
-              <div key={trip.id} className="relative group">
-                <PhotoCard
-                  imageUrl={trip.cover_photo_url || 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80'}
-                  title={trip.name}
-                  subtitle={formatDateRange(trip.start_date, trip.end_date)}
-                  badge={`${stopCount} ${stopCount === 1 ? 'Stop' : 'Stops'}`}
-                  badgeColor="bg-ocean-deep/80 text-white"
-                  aspectRatio="aspect-[4/3]"
-                >
-                  <div className="space-y-2 pt-1 border-t border-white/10 text-xs text-white">
-                    <p className="truncate font-medium text-white/80">
-                      📍 {stopCities}
-                    </p>
+              <PhotoCard
+                key={trip.id}
+                imageUrl={trip.cover_image_url || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1200&q=80'}
+                title={trip.name}
+                subtitle={formatDateRange(trip.start_date, trip.end_date)}
+                badge={trip.status.toUpperCase()}
+                onClick={() => navigate(`/trips/${trip.id}`)}
+              >
+                <div className="space-y-4">
+                  {/* Route Breadcrumb */}
+                  <div className="flex items-center gap-2 text-xs text-slate-600">
+                    <MapPin className="w-3.5 h-3.5 text-amber-primary shrink-0" />
+                    <span className="truncate font-sans font-medium">{stopCities}</span>
+                  </div>
 
-                    <div className="flex items-center justify-between pt-1 text-white">
-                      <span className="font-bold">
-                        Budget: ₹{parseFloat(trip.total_budget || 0).toLocaleString('en-IN')}
-                      </span>
-
-                      {/* Action buttons */}
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSharingTrip(trip);
-                          }}
-                          className="p-1.5 rounded-full bg-white/20 hover:bg-white/40 text-white transition-colors"
-                          title="Share Trip"
-                        >
-                          <Share2 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingTrip(trip);
-                            setCreateModalOpen(true);
-                          }}
-                          className="p-1.5 rounded-full bg-white/20 hover:bg-white/40 text-white transition-colors"
-                          title="Edit Trip Details"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setTripToDelete(trip);
-                            setDeleteModalOpen(true);
-                          }}
-                          className="p-1.5 rounded-full bg-rose-500/30 hover:bg-rose-500 text-white transition-colors"
-                          title="Delete Trip"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+                  {/* Quick Metric Bar */}
+                  <div className="grid grid-cols-2 gap-2 p-3 rounded-2xl bg-[#DFE4EA] border border-slate-300 shadow-neu-inset-sm text-xs">
+                    <div>
+                      <span className="text-[10px] font-mono uppercase text-slate-500 block">Stops</span>
+                      <span className="font-bold text-[#0F172A] font-sans">{stopCount} cities</span>
                     </div>
-
-                    {/* Navigation buttons to Builder, Itinerary, and Budget */}
-                    <div className="pt-2 grid grid-cols-3 gap-1.5 text-center">
-                      <Link
-                        to={`/trips/${trip.id}/builder`}
-                        className="py-1.5 rounded-full bg-white/20 hover:bg-white/30 text-white text-[11px] font-semibold backdrop-blur-xs transition-colors truncate"
-                      >
-                        Builder
-                      </Link>
-                      <Link
-                        to={`/budget?trip_id=${trip.id}`}
-                        className="py-1.5 rounded-full bg-white/20 hover:bg-white/30 text-white text-[11px] font-semibold backdrop-blur-xs transition-colors truncate"
-                      >
-                        Budget
-                      </Link>
-                      <Link
-                        to={`/trips/${trip.id}`}
-                        className="py-1.5 rounded-full bg-white text-abyss hover:bg-foam text-[11px] font-bold shadow-sm transition-colors truncate"
-                      >
-                        Schedule
-                      </Link>
+                    <div>
+                      <span className="text-[10px] font-mono uppercase text-slate-500 block">Budget</span>
+                      <span className="font-mono font-bold text-amber-primary">
+                        ₹{parseFloat(trip.total_budget || 0).toLocaleString('en-IN')}
+                      </span>
                     </div>
                   </div>
-                </PhotoCard>
-              </div>
+
+                  {/* Actions Grid */}
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-300/80 gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingTrip(trip);
+                          setCreateModalOpen(true);
+                        }}
+                        className="p-2 rounded-xl text-slate-600 hover:text-[#0F172A] hover:bg-[#CBD5E1] transition-colors"
+                        title="Edit Trip Settings"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={(e) => handleOpenShare(trip, e)}
+                        className="p-2 rounded-xl text-slate-600 hover:text-teal-accent hover:bg-[#CBD5E1] transition-colors"
+                        title="Share Public Link"
+                      >
+                        <Share2 className="w-4 h-4" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setTripToDelete(trip);
+                          setDeleteModalOpen(true);
+                        }}
+                        className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                        title="Delete Trip"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/trips/${trip.id}`)}
+                      className="px-3.5 py-1.5 rounded-xl text-xs font-display font-extrabold text-amber-primary hover:text-white hover:bg-amber-primary transition-all flex items-center gap-1 shadow-neu-extruded-sm"
+                    >
+                      <span>Open</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </PhotoCard>
             );
           })}
         </div>
       ) : (
-        /* Empty State on Foam Surface */
-        <div className="bg-white border border-slate-200 rounded-[20px] p-16 text-center max-w-lg mx-auto space-y-4 shadow-sm">
-          <div className="w-16 h-16 rounded-full bg-ocean-teal/10 text-ocean-teal flex items-center justify-center mx-auto">
-            <Compass className="w-8 h-8" />
+        <div className="neu-card p-14 text-center max-w-md mx-auto space-y-4 shadow-neu-extruded">
+          <div className="w-14 h-14 rounded-2xl bg-[#DFE4EA] border border-slate-300 text-amber-primary flex items-center justify-center mx-auto shadow-neu-inset">
+            <Compass className="w-7 h-7" />
           </div>
-          <div className="space-y-1">
-            <h3 className="font-display font-bold text-xl text-abyss">No trips created yet</h3>
-            <p className="text-sm text-slate-500 leading-relaxed">
-              Start planning your next multi-destination adventure by creating your first trip itinerary.
-            </p>
-          </div>
-          <div className="pt-2">
-            <Button
-              variant="primary"
-              size="md"
-              icon={Plus}
-              onClick={() => {
-                setEditingTrip(null);
-                setCreateModalOpen(true);
-              }}
-            >
-              Plan Your First Trip
-            </Button>
-          </div>
+          <h3 className="font-display font-bold text-xl text-[#0F172A]">No Trips Planned Yet</h3>
+          <p className="text-xs text-slate-500">
+            Start creating your first multi-city trip with intelligent scheduling, budget optimization, and health scores.
+          </p>
+          <Button
+            variant="primary"
+            size="md"
+            icon={Plus}
+            onClick={() => {
+              setEditingTrip(null);
+              setCreateModalOpen(true);
+            }}
+          >
+            Create First Journey
+          </Button>
         </div>
       )}
 
@@ -246,49 +237,83 @@ export const TripsPage = () => {
           setEditingTrip(null);
         }}
         initialData={editingTrip}
-        onTripCreated={(savedTrip) => {
+        onTripCreated={(newTrip) => {
           if (editingTrip) {
-            setTrips((prev) => prev.map((t) => (t.id === savedTrip.id ? savedTrip : t)));
+            setTrips((prev) => prev.map((t) => (t.id === newTrip.id ? newTrip : t)));
+            success(`Updated "${newTrip.name}"`);
           } else {
-            setTrips((prev) => [savedTrip, ...prev]);
-            navigate(`/trips/${savedTrip.id}/builder`);
+            setTrips((prev) => [newTrip, ...prev]);
+            navigate(`/trips/${newTrip.id}`);
           }
         }}
       />
-
-      {/* Share Trip Modal */}
-      {sharingTrip && (
-        <ShareTripModal
-          isOpen={!!sharingTrip}
-          onClose={() => setSharingTrip(null)}
-          trip={sharingTrip}
-          onTripUpdated={(updatedData) => {
-            setTrips((prev) =>
-              prev.map((t) =>
-                t.id === updatedData.trip_id
-                  ? { ...t, is_public: updatedData.is_public, share_slug: updatedData.share_slug }
-                  : t
-              )
-            );
-          }}
-        />
-      )}
 
       {/* Delete Confirmation Modal */}
       <Modal
         isOpen={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
-        title="Delete Trip?"
-        description={`Are you sure you want to delete "${tripToDelete?.name}"? All stops, expenses, and itinerary schedules within it will be permanently removed.`}
-        maxWidth="max-w-md"
+        title="Delete Travel Itinerary"
       >
-        <div className="pt-3 flex items-center justify-end gap-3 border-t border-slate-100">
-          <Button variant="ghost" size="md" onClick={() => setDeleteModalOpen(false)}>
-            Cancel
-          </Button>
-          <Button variant="danger" size="md" onClick={handleDeleteTrip} isLoading={isDeleting}>
-            Delete Trip
-          </Button>
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600 font-sans">
+            Are you sure you want to delete <strong className="text-[#0F172A]">"{tripToDelete?.name}"</strong>? This will remove all associated stops, scheduled activities, and logged expenses.
+          </p>
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-300">
+            <Button
+              variant="outline"
+              size="md"
+              onClick={() => setDeleteModalOpen(false)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              size="md"
+              onClick={handleDeleteTrip}
+              isLoading={isDeleting}
+            >
+              Confirm Delete
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Public Share Modal */}
+      <Modal
+        isOpen={shareModalOpen}
+        onClose={() => setShareModalOpen(false)}
+        title="Share Itinerary"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600 font-sans">
+            Anyone with this link can view the read-only itinerary schedule and route without needing an account.
+          </p>
+          <div className="flex items-center gap-2 p-3 rounded-2xl bg-[#DFE4EA] border border-slate-300 shadow-neu-inset-sm">
+            <input
+              type="text"
+              readOnly
+              value={sharedTrip ? `${window.location.origin}/share/${sharedTrip.share_slug}` : ''}
+              className="bg-transparent text-xs font-mono text-[#0F172A] w-full outline-none"
+            />
+            <button
+              type="button"
+              onClick={copyShareLink}
+              className="px-3 py-1.5 rounded-xl bg-amber-primary text-white text-xs font-display font-bold whitespace-nowrap shadow-neu-amber hover:bg-amber-600 transition-all flex items-center gap-1"
+            >
+              {copied ? (
+                <>
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Copied!</span>
+                </>
+              ) : (
+                <>
+                  <Share2 className="w-3.5 h-3.5" />
+                  <span>Copy Link</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </Modal>
     </div>

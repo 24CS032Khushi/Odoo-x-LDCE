@@ -2,26 +2,31 @@ import React from 'react';
 import { Loader2 } from 'lucide-react';
 
 const variants = {
-  // Pure white pill with abyss text (for dark/photo hero surfaces)
-  white: 'bg-white hover:bg-foam text-abyss font-bold shadow-md hover:shadow-lg active:scale-98 focus-visible:ring-white border border-white/20',
-  // Solid abyss pill (standard primary on light foam surfaces)
-  primary: 'bg-abyss hover:bg-ocean-deep text-white font-semibold shadow-sm hover:shadow active:scale-98 focus-visible:ring-abyss',
-  // Translucent dark glass pill
-  glass: 'glass-pill-control text-white font-medium hover:text-white active:scale-98 focus-visible:ring-white/50',
-  // Light foam pill
-  secondary: 'bg-foam hover:bg-slate-200/80 text-abyss font-semibold active:bg-slate-300 focus-visible:ring-ocean-teal border border-slate-200',
-  // Outline pill
-  outline: 'border border-slate-300 hover:border-abyss bg-transparent hover:bg-black/5 text-abyss font-medium active:bg-slate-100 focus-visible:ring-abyss',
-  // Danger pill
-  danger: 'bg-rose-600 hover:bg-rose-700 text-white font-semibold shadow-sm hover:shadow active:scale-98 focus-visible:ring-rose-500',
-  // Ghost pill
-  ghost: 'text-slate-600 hover:text-abyss hover:bg-black/5 active:bg-black/10 focus-visible:ring-slate-400',
+  // Primary Tactile: Amber Extruded -> Inset on :active
+  primary: 'neu-btn-primary rounded-2xl',
+  white: 'neu-btn-primary rounded-2xl',
+  
+  // Secondary Tactile: Surface Extruded -> Inset on :active
+  secondary: 'neu-btn-secondary rounded-2xl',
+  glass: 'neu-btn-secondary rounded-2xl',
+
+  // Subtle Inset Well Button
+  inset: 'neu-inset text-white hover:text-amber-primary font-bold rounded-2xl border border-white/10 hover:border-amber-primary/40 active:scale-98',
+
+  // Outline Tactile
+  outline: 'border border-amber-primary/40 hover:border-amber-primary bg-[#1F2A3A]/60 hover:bg-[#1F2A3A] text-white font-bold rounded-2xl active:scale-98 shadow-neu-extruded-sm',
+
+  // Danger Button
+  danger: 'bg-rose-600/90 hover:bg-rose-600 text-white font-bold rounded-2xl shadow-neu-extruded-sm active:shadow-neu-inset-sm border border-rose-400/30',
+
+  // Ghost Button
+  ghost: 'text-slate-300 hover:text-white hover:bg-white/10 rounded-2xl active:bg-white/15',
 };
 
 const sizes = {
-  sm: 'text-xs px-4 py-1.5 gap-1.5',
-  md: 'text-sm px-5 py-2.5 gap-2',
-  lg: 'text-base px-7 py-3 gap-2.5',
+  sm: 'text-xs px-4 py-2 gap-1.5 font-bold',
+  md: 'text-sm px-5 py-2.5 gap-2 font-bold',
+  lg: 'text-base px-7 py-3.5 gap-2.5 font-bold',
 };
 
 export const Button = ({
@@ -36,7 +41,7 @@ export const Button = ({
   className = '',
   ...props
 }) => {
-  const baseClasses = 'inline-flex items-center justify-center rounded-full tracking-tight transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none select-none';
+  const baseClasses = 'inline-flex items-center justify-center tracking-tight transition-all duration-150 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none select-none';
   const variantClasses = variants[variant] || variants.primary;
   const sizeClasses = sizes[size] || sizes.md;
 

@@ -745,6 +745,366 @@ const citiesData = [
     ]
   },
   {
+    name: 'Varanasi',
+    country: 'India',
+    region: 'Asia',
+    cost_index: 0.60,
+    popularity_score: 9.6,
+    image_url: 'https://images.unsplash.com/photo-1561361513-2d000a50f0dc?auto=format&fit=crop&w=1200&q=80',
+    activities: [
+      {
+        name: 'Dashashwamedh Ghat Grand Ganga Aarti',
+        category: 'culture',
+        description: 'Witness the mesmerizing synchronized evening fire ritual on the banks of holy river Ganga.',
+        image_url: 'https://images.unsplash.com/photo-1561361513-2d000a50f0dc?auto=format&fit=crop&w=800&q=80',
+        cost: 0.00,
+        duration_minutes: 90
+      },
+      {
+        name: 'Sunrise Boat Cruise along 84 Ghats',
+        category: 'sightseeing',
+        description: 'Row peacefully along the misty Ganges watching morning bathers and ancient temples.',
+        image_url: 'https://images.unsplash.com/photo-1561361513-2d000a50f0dc?auto=format&fit=crop&w=800&q=80',
+        cost: 600.00,
+        duration_minutes: 100
+      },
+      {
+        name: 'Kashi Vishwanath Golden Temple Darshan',
+        category: 'culture',
+        description: 'Visit one of the 12 sacred Jyotirlingas of Lord Shiva in the revitalized corridor.',
+        image_url: 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=800&q=80',
+        cost: 0.00,
+        duration_minutes: 120
+      },
+      {
+        name: 'Kachori Gali & Banarasi Paan Food Trail',
+        category: 'food',
+        description: 'Taste authentic hot kachori sabzi, creamy malaiyo froth sweet, and iconic Banarasi paan.',
+        image_url: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80',
+        cost: 400.00,
+        duration_minutes: 90
+      },
+      {
+        name: 'Sarnath Buddhist Deer Park Excursion',
+        category: 'culture',
+        description: 'Explore the Dhamek Stupa where Buddha gave his first sermon and the Ashoka Pillar.',
+        image_url: 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=800&q=80',
+        cost: 300.00,
+        duration_minutes: 180
+      }
+    ]
+  },
+  {
+    name: 'Kerala (Kochi & Backwaters)',
+    country: 'India',
+    region: 'Asia',
+    cost_index: 0.70,
+    popularity_score: 9.7,
+    image_url: 'https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=1200&q=80',
+    activities: [
+      {
+        name: 'Alleppey Luxury Houseboat Overnight Cruise',
+        category: 'adventure',
+        description: 'Drift through emerald palm-fringed backwaters with traditional Kerala meals cooked onboard.',
+        image_url: 'https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=800&q=80',
+        cost: 6500.00,
+        duration_minutes: 360
+      },
+      {
+        name: 'Fort Kochi Chinese Fishing Nets & Sunset',
+        category: 'sightseeing',
+        description: 'Watch cantilevered 14th-century fishing nets lowered into Arabian Sea at golden hour.',
+        image_url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80',
+        cost: 0.00,
+        duration_minutes: 90
+      },
+      {
+        name: 'Kathakali Dance & Kalaripayattu Martial Arts',
+        category: 'culture',
+        description: 'Dramatic classical dance performance with elaborate makeup followed by ancient martial arts.',
+        image_url: 'https://images.unsplash.com/photo-1518548419970-58e3b4079ab2?auto=format&fit=crop&w=800&q=80',
+        cost: 800.00,
+        duration_minutes: 120
+      },
+      {
+        name: 'Munnar Tea Plantation & Mountain Trek',
+        category: 'adventure',
+        description: 'Hike through misty rolling green tea hills and visit historic tea processing museum.',
+        image_url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=800&q=80',
+        cost: 1200.00,
+        duration_minutes: 240
+      },
+      {
+        name: 'Traditional Kerala Sadya Banana Leaf Feast',
+        category: 'food',
+        description: 'Taste 24 vegetarian culinary delicacies served on fresh banana leaf with payasam dessert.',
+        image_url: 'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?auto=format&fit=crop&w=800&q=80',
+        cost: 600.00,
+        duration_minutes: 90
+      }
+    ]
+  },
+  {
+    name: 'Ladakh (Leh & Pangong)',
+    country: 'India',
+    region: 'Asia',
+    cost_index: 0.85,
+    popularity_score: 9.8,
+    image_url: 'https://images.unsplash.com/photo-1581793745862-99fde7fa73d2?auto=format&fit=crop&w=1200&q=80',
+    activities: [
+      {
+        name: 'Pangong Tso High-Altitude Lake Camping',
+        category: 'adventure',
+        description: 'Camp by the crystal blue color-shifting lake at 14,270 ft surrounded by snowcapped Himalayas.',
+        image_url: 'https://images.unsplash.com/photo-1581793745862-99fde7fa73d2?auto=format&fit=crop&w=800&q=80',
+        cost: 4500.00,
+        duration_minutes: 360
+      },
+      {
+        name: 'Khardung La Pass Motorbike Expedition',
+        category: 'adventure',
+        description: 'Ride across one of the highest motorable mountain passes in the world at 17,982 ft.',
+        image_url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=800&q=80',
+        cost: 3500.00,
+        duration_minutes: 240
+      },
+      {
+        name: 'Thiksey Monastery Sunrise Prayer Chant',
+        category: 'culture',
+        description: '12-story hilltop Tibetan Buddhist monastery with towering 49ft Maitreya Buddha statue.',
+        image_url: 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=800&q=80',
+        cost: 200.00,
+        duration_minutes: 120
+      },
+      {
+        name: 'Nubra Valley Hunder Double-Humped Camel Safari',
+        category: 'adventure',
+        description: 'Ride rare Bactrian camels across white cold desert sand dunes with mountain backdrop.',
+        image_url: 'https://images.unsplash.com/photo-1451337516015-6b6e9a44a8a3?auto=format&fit=crop&w=800&q=80',
+        cost: 800.00,
+        duration_minutes: 120
+      },
+      {
+        name: 'Tibetan Butter Tea & Steamed Momos at Leh Market',
+        category: 'food',
+        description: 'Warm up with salted yak butter tea, piping hot thukpa noodles, and spicy chutney momos.',
+        image_url: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80',
+        cost: 350.00,
+        duration_minutes: 75
+      }
+    ]
+  },
+  {
+    name: 'Udaipur',
+    country: 'India',
+    region: 'Asia',
+    cost_index: 0.70,
+    popularity_score: 9.6,
+    image_url: 'https://images.unsplash.com/photo-1615836245337-f5b9b2303f10?auto=format&fit=crop&w=1200&q=80',
+    activities: [
+      {
+        name: 'Lake Pichola Sunset Boat Cruise & Jag Mandir',
+        category: 'sightseeing',
+        description: 'Cruise past white marble palaces reflecting in the calm waters of Pichola at dusk.',
+        image_url: 'https://images.unsplash.com/photo-1615836245337-f5b9b2303f10?auto=format&fit=crop&w=800&q=80',
+        cost: 800.00,
+        duration_minutes: 90
+      },
+      {
+        name: 'Udaipur City Palace Museum Guided Tour',
+        category: 'culture',
+        description: 'Explore Rajasthan’s largest palace complex with mirror work, stained glass, and royal courtyards.',
+        image_url: 'https://images.unsplash.com/photo-1477587458883-47145ed94245?auto=format&fit=crop&w=800&q=80',
+        cost: 400.00,
+        duration_minutes: 150
+      },
+      {
+        name: 'Sajjangarh Monsoon Palace Hilltop Sunset',
+        category: 'sightseeing',
+        description: 'Perched on Bansdara peak offering sweeping views of Udaipur lakes and Aravalli mountain range.',
+        image_url: 'https://images.unsplash.com/photo-1615836245337-f5b9b2303f10?auto=format&fit=crop&w=800&q=80',
+        cost: 250.00,
+        duration_minutes: 100
+      },
+      {
+        name: 'Lakeside Candlelight Dining at Ambrai',
+        category: 'food',
+        description: 'Romantic Mewari dining overlooking the illuminated City Palace and Lake Palace.',
+        image_url: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80',
+        cost: 2500.00,
+        duration_minutes: 120
+      }
+    ]
+  },
+  {
+    name: 'Mumbai',
+    country: 'India',
+    region: 'Asia',
+    cost_index: 0.90,
+    popularity_score: 9.7,
+    image_url: 'https://images.unsplash.com/photo-1570168007204-dfb528c6958f?auto=format&fit=crop&w=1200&q=80',
+    activities: [
+      {
+        name: 'Gateway of India & Taj Mahal Palace Walk',
+        category: 'sightseeing',
+        description: 'Iconic 1924 basalt triumphal arch overlooking Mumbai Harbour and the Arabian Sea.',
+        image_url: 'https://images.unsplash.com/photo-1570168007204-dfb528c6958f?auto=format&fit=crop&w=800&q=80',
+        cost: 0.00,
+        duration_minutes: 75
+      },
+      {
+        name: 'Marine Drive Queen’s Necklace Sunset Stroll',
+        category: 'sightseeing',
+        description: '3.6-kilometer C-shaped boulevard with sweeping coastal views and evening sea breeze.',
+        image_url: 'https://images.unsplash.com/photo-1570168007204-dfb528c6958f?auto=format&fit=crop&w=800&q=80',
+        cost: 0.00,
+        duration_minutes: 90
+      },
+      {
+        name: 'Elephanta Caves UNESCO Island Excursion',
+        category: 'culture',
+        description: 'Ferry ride to 5th-century rock-cut cave temples dedicated to Trimurti Shiva.',
+        image_url: 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=800&q=80',
+        cost: 650.00,
+        duration_minutes: 240
+      },
+      {
+        name: 'Chowpatty Beach Vada Pav & Chaat Crawl',
+        category: 'food',
+        description: 'Savor spicy vada pav, pav bhaji, bhel puri, and kulfi at bustling seaside food stalls.',
+        image_url: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80',
+        cost: 400.00,
+        duration_minutes: 90
+      }
+    ]
+  },
+  {
+    name: 'Agra',
+    country: 'India',
+    region: 'Asia',
+    cost_index: 0.65,
+    popularity_score: 9.8,
+    image_url: 'https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=1200&q=80',
+    activities: [
+      {
+        name: 'Taj Mahal VIP Sunrise Tour',
+        category: 'culture',
+        description: 'Watch the morning sun illuminate the world’s most magnificent white marble monument to eternal love.',
+        image_url: 'https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=800&q=80',
+        cost: 1100.00,
+        duration_minutes: 180
+      },
+      {
+        name: 'Agra Fort Mughal Imperial Citadel',
+        category: 'culture',
+        description: 'Red sandstone fortress palace with views of Taj Mahal across the Yamuna River.',
+        image_url: 'https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=800&q=80',
+        cost: 650.00,
+        duration_minutes: 120
+      },
+      {
+        name: 'Mehtab Bagh Moonlight Garden Walk',
+        category: 'sightseeing',
+        description: 'Lush riverside botanical charbagh garden offering iconic uncrowded sunset photos of Taj Mahal.',
+        image_url: 'https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=800&q=80',
+        cost: 300.00,
+        duration_minutes: 90
+      },
+      {
+        name: 'Agra Petha & Mughlai Kebab Tasting',
+        category: 'food',
+        description: 'Sample world-famous Agra petha translucent sweets and galouti kebabs.',
+        image_url: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80',
+        cost: 500.00,
+        duration_minutes: 75
+      }
+    ]
+  },
+  {
+    name: 'Manali & Solang Valley',
+    country: 'India',
+    region: 'Asia',
+    cost_index: 0.70,
+    popularity_score: 9.5,
+    image_url: 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?auto=format&fit=crop&w=1200&q=80',
+    activities: [
+      {
+        name: 'Solang Valley Paragliding & Adventure',
+        category: 'adventure',
+        description: 'Tandem paraglide above pine forests and snow peaks, quad biking, and zorbing.',
+        image_url: 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?auto=format&fit=crop&w=800&q=80',
+        cost: 3200.00,
+        duration_minutes: 180
+      },
+      {
+        name: 'Rohtang Pass & Atal Tunnel Snow Excursion',
+        category: 'adventure',
+        description: 'High mountain pass at 13,058 ft with eternal snowfields and panoramic Pir Panjal peaks.',
+        image_url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=800&q=80',
+        cost: 2500.00,
+        duration_minutes: 300
+      },
+      {
+        name: 'Hadimba Wooden Temple & Cedar Forest',
+        category: 'culture',
+        description: 'Unique 1553 pagoda-style wooden temple nestled inside towering giant deodar cedar grove.',
+        image_url: 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=800&q=80',
+        cost: 100.00,
+        duration_minutes: 90
+      },
+      {
+        name: 'Old Manali Riverside Cafe Crawl & Trout Fish',
+        category: 'food',
+        description: 'Bohemian cafes serving woodfired pizza, fresh Himalayan trout, and apple crumble.',
+        image_url: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80',
+        cost: 800.00,
+        duration_minutes: 120
+      }
+    ]
+  },
+  {
+    name: 'Hampi',
+    country: 'India',
+    region: 'Asia',
+    cost_index: 0.60,
+    popularity_score: 9.6,
+    image_url: 'https://images.unsplash.com/photo-1600100397608-f010f443834a?auto=format&fit=crop&w=1200&q=80',
+    activities: [
+      {
+        name: 'Vijaya Vittala Temple & Iconic Stone Chariot',
+        category: 'culture',
+        description: 'UNESCO World Heritage wonder with musical stone pillars and iconic monolithic chariot.',
+        image_url: 'https://images.unsplash.com/photo-1600100397608-f010f443834a?auto=format&fit=crop&w=800&q=80',
+        cost: 500.00,
+        duration_minutes: 150
+      },
+      {
+        name: 'Matanga Hill Sunrise Trek Over Boulder Landscape',
+        category: 'adventure',
+        description: 'Climb the highest point in Hampi for 360-degree sunrise views over ancient temple ruins.',
+        image_url: 'https://images.unsplash.com/photo-1600100397608-f010f443834a?auto=format&fit=crop&w=800&q=80',
+        cost: 0.00,
+        duration_minutes: 120
+      },
+      {
+        name: 'Virupaksha Temple & Tungabhadra Coracle Ride',
+        category: 'sightseeing',
+        description: 'Active 7th-century sacred shrine followed by traditional round basket boat ride on the river.',
+        image_url: 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=800&q=80',
+        cost: 400.00,
+        duration_minutes: 120
+      },
+      {
+        name: 'South Indian Filter Coffee & Mango Tree Cafe',
+        category: 'food',
+        description: 'Fresh coconut thali, banana flower curry, and piping hot brass tumbler filter coffee.',
+        image_url: 'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?auto=format&fit=crop&w=800&q=80',
+        cost: 350.00,
+        duration_minutes: 75
+      }
+    ]
+  },
+  {
     name: 'New York City',
     country: 'United States',
     region: 'Americas',

@@ -28,6 +28,7 @@ model User {
   password_hash String
   photo_url     String?
   language      String             @default("en")
+  interests     String             @default("culture,food,sightseeing")
   role          String             @default("user")
   last_active   DateTime           @default(now())
   created_at    DateTime           @default(now())

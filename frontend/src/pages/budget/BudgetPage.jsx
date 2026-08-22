@@ -84,37 +84,38 @@ export const BudgetPage = () => {
     setIsDeletingExpense(expenseId);
     try {
       await api.delete(`/trips/${selectedTripId}/expenses/${expenseId}`);
-      success('Expense removed');
+      success('Expense deleted');
       fetchBudget(selectedTripId);
     } catch (err) {
-      toastError(err.message || 'Failed to delete expense');
+      toastError('Failed to delete expense');
     } finally {
       setIsDeletingExpense(null);
     }
   };
 
   if (isLoading && !budgetData) {
-    return <FullPageLoader label="Calculating real-time budget analytics..." />;
+    return <FullPageLoader label="Calculating financial telemetry & burn rate in INR..." />;
   }
 
   if (trips.length === 0) {
     return (
-      <div className="space-y-8 animate-fade-in">
-        <div>
-          <h1 className="text-3xl font-bold text-abyss font-display tracking-tight">
-            Trip Budget Analytics
+      <div className="space-y-8 animate-fade-in text-[#0F172A] font-sans">
+        <div className="neu-card p-6 sm:p-8 shadow-neu-extruded">
+          <h1 className="text-3xl sm:text-4xl font-black font-display text-[#0F172A] tracking-tight flex items-center gap-1">
+            <span>Trip Budget & Optimization</span>
+            <span className="text-amber-primary">.</span>
           </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Real-time categorized expense tracking and cost intelligence
+          <p className="text-sm text-slate-600 mt-1 font-sans">
+            Categorized expense tracking, daily burn rate in INR (₹), and budget analytics.
           </p>
         </div>
-        <div className="bg-white border border-slate-200 rounded-[20px] p-16 text-center max-w-md mx-auto space-y-4 shadow-sm">
-          <div className="w-16 h-16 rounded-full bg-ocean-teal/10 text-ocean-teal flex items-center justify-center mx-auto">
-            <Wallet className="w-8 h-8" />
+        <div className="neu-card p-14 text-center max-w-md mx-auto space-y-4 shadow-neu-extruded">
+          <div className="w-14 h-14 rounded-2xl bg-[#DFE4EA] border border-slate-300 text-amber-primary flex items-center justify-center mx-auto shadow-neu-inset">
+            <Wallet className="w-7 h-7" />
           </div>
-          <h3 className="font-display font-bold text-xl text-abyss">No trips created yet</h3>
-          <p className="text-sm text-slate-500">
-            Create an itinerary first to analyze budget allocations and cost savings.
+          <h3 className="font-display font-bold text-xl text-[#0F172A]">No Trips Found</h3>
+          <p className="text-xs text-slate-500">
+            Create a trip first to unlock detailed budget categorization and smart spending analytics.
           </p>
           <Link to="/trips">
             <Button variant="primary" size="md">
@@ -133,19 +134,20 @@ export const BudgetPage = () => {
   const savingsHeadroom = parseFloat(budgetData?.savings_headroom || 0);
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Top Header & Trip Selector */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-6 border-b border-slate-200">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 text-xs font-bold text-ocean-teal uppercase tracking-wider">
+    <div className="space-y-10 animate-fade-in text-[#0F172A] font-sans">
+      {/* Top Header & Trip Selector in High-Contrast Tactile Card */}
+      <div className="neu-card p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-neu-extruded">
+        <div className="space-y-1.5 max-w-xl">
+          <div className="flex items-center gap-2 text-xs font-mono font-bold text-amber-primary uppercase tracking-wider">
             <Wallet className="w-3.5 h-3.5" />
-            <span>Financial Intelligence</span>
+            <span>Financial Telemetry</span>
           </div>
-          <h1 className="text-3xl sm:text-4xl font-bold text-abyss font-display tracking-tight">
-            Trip Budget & Costs
+          <h1 className="text-3xl sm:text-4xl font-display font-black text-[#0F172A] tracking-tight flex items-center gap-1.5">
+            <span>Trip Budget & Optimization</span>
+            <span className="text-amber-primary">.</span>
           </h1>
-          <p className="text-sm text-slate-500">
-            Dynamic expense categorization, average daily spend, and automated savings suggestions
+          <p className="text-sm text-slate-600 font-sans">
+            Dynamic expense categorization, daily burn rate in INR (₹), and automated savings heuristics.
           </p>
         </div>
 
@@ -158,10 +160,10 @@ export const BudgetPage = () => {
               setSelectedTripId(id);
               setSearchParams({ trip_id: id });
             }}
-            className="px-4 py-2.5 rounded-full bg-white border border-slate-200 text-xs font-bold text-abyss shadow-xs focus:outline-none focus:border-ocean-teal cursor-pointer"
+            className="px-4 py-2.5 rounded-2xl bg-[#DFE4EA] border border-slate-300 text-xs font-mono font-bold text-[#0F172A] shadow-neu-inset-sm focus:outline-none focus:border-amber-primary cursor-pointer"
           >
             {trips.map((t) => (
-              <option key={t.id} value={t.id}>
+              <option key={t.id} value={t.id} className="bg-[#E5EAF0] text-[#0F172A]">
                 📍 {t.name}
               </option>
             ))}
@@ -178,248 +180,216 @@ export const BudgetPage = () => {
         </div>
       </div>
 
-      {budgetData && (
-        <>
-          {/* Top Summary Bar: Total Spent vs Total Budget Pair */}
-          <div className="p-6 sm:p-8 rounded-[20px] bg-white border border-slate-200 shadow-sm space-y-6">
-            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-              {/* Primary Number Pair */}
-              <div className="space-y-1">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                  Total Expenditure vs Planned Budget
-                </span>
-                <div className="flex flex-wrap items-baseline gap-3">
-                  <span
-                    className={`font-display font-bold text-3xl sm:text-4xl ${
-                      isOverBudget ? 'text-[#c0392b]' : 'text-ocean-teal'
-                    }`}
-                  >
-                    ₹{totalSpent.toLocaleString('en-IN')}
-                  </span>
-                  <span className="text-slate-400 text-xl font-light">/</span>
-                  <span className="font-display font-semibold text-2xl sm:text-3xl text-slate-700">
-                    ₹{totalBudget.toLocaleString('en-IN')}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 pt-1">
-                  {isOverBudget ? (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-xs font-bold text-[#c0392b]">
-                      <AlertTriangle className="w-3.5 h-3.5" />
-                      ₹{overAmount.toLocaleString('en-IN')} Over Target Budget
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-ocean-teal/10 border border-ocean-teal/20 text-xs font-bold text-ocean-teal">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      ₹{savingsHeadroom.toLocaleString('en-IN')} Remaining Headroom
-                    </span>
-                  )}
-                </div>
-              </div>
+      {/* KPI Cards: 3 Core Figures */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <div className="neu-card p-6 space-y-2 shadow-neu-extruded">
+          <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500 font-bold block">
+            Target Trip Budget
+          </span>
+          <p className="font-mono font-bold text-3xl text-[#0F172A]">
+            ₹{totalBudget.toLocaleString('en-IN')}
+          </p>
+          <span className="text-xs text-slate-500 block font-sans">
+            Set maximum expenditure threshold
+          </span>
+        </div>
 
-              {/* Stat Cards Grid beside number pair */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 w-full lg:w-auto">
-                <div className="p-3.5 rounded-[16px] bg-slate-50 border border-slate-200/80 min-w-[130px]">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Daily Average</span>
-                  <p className="font-display font-bold text-base text-abyss mt-0.5">
-                    ₹{budgetData.average_daily_cost.toLocaleString('en-IN')}/day
-                  </p>
-                </div>
-                <div className="p-3.5 rounded-[16px] bg-slate-50 border border-slate-200/80 min-w-[130px]">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Trip Duration</span>
-                  <p className="font-display font-bold text-base text-abyss mt-0.5">
-                    {budgetData.total_days} {budgetData.total_days === 1 ? 'Day' : 'Days'}
-                  </p>
-                </div>
-                <div className="p-3.5 rounded-[16px] bg-slate-50 border border-slate-200/80 min-w-[130px] col-span-2 sm:col-span-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Target Daily</span>
-                  <p className="font-display font-bold text-base text-ocean-teal mt-0.5">
-                    ₹{budgetData.average_daily_budget.toLocaleString('en-IN')}/day
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Visual Budget Meter */}
-            <div className="space-y-2 pt-2 border-t border-slate-100">
-              <div className="flex items-center justify-between text-xs font-semibold text-slate-500">
-                <span>Budget Utilization</span>
-                <span>
-                  {totalBudget > 0 ? `${Math.round((totalSpent / totalBudget) * 100)}%` : 'No budget limit'}
-                </span>
-              </div>
-              <div className="w-full h-3 rounded-full bg-slate-100 overflow-hidden relative">
-                <div
-                  className={`h-full rounded-full transition-all duration-700 ${
-                    isOverBudget ? 'bg-[#c0392b]' : 'bg-ocean-teal'
-                  }`}
-                  style={{ width: `${Math.min(100, totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 50)}%` }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Middle Row: Health Score Gauge & Category Breakdown Chart */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <HealthScoreGauge scoreData={budgetData.health_score} />
-            <BudgetChart categories={budgetData.categories} totalSpent={totalSpent} />
-          </div>
-
-          {/* Bottom Section: Over-Budget Actionable Alternatives OR Calm Confirmation State */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-display font-bold text-xl text-abyss">
-                  {isOverBudget ? 'Recommended Cost Optimizations' : 'Budget Health Confirmation'}
-                </h3>
-                <p className="text-xs text-slate-500">
-                  {isOverBudget
-                    ? 'Ranked actionable alternatives calculated directly from your destination and activity records'
-                    : 'Your itinerary is cost-effective and on track'}
-                </p>
-              </div>
-            </div>
-
+        <div className="neu-card p-6 space-y-2 shadow-neu-extruded">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500 font-bold block">
+              Total Logged Spend
+            </span>
             {isOverBudget ? (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {budgetData.suggestions.map((sug, idx) => (
+              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700">
+                OVER BUDGET
+              </span>
+            ) : (
+              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                ON TRACK
+              </span>
+            )}
+          </div>
+          <p className={`font-mono font-bold text-3xl ${isOverBudget ? 'text-rose-600' : 'text-amber-primary'}`}>
+            ₹{totalSpent.toLocaleString('en-IN')}
+          </p>
+          <span className="text-xs text-slate-500 block font-sans">
+            {isOverBudget
+              ? `Exceeded limit by ₹${overAmount.toLocaleString('en-IN')}`
+              : `₹${savingsHeadroom.toLocaleString('en-IN')} remaining headroom`}
+          </span>
+        </div>
+
+        <div className="neu-card p-6 space-y-2 shadow-neu-extruded">
+          <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500 font-bold block">
+            Daily Burn Velocity
+          </span>
+          <p className="font-mono font-bold text-3xl text-teal-accent">
+            ₹{parseFloat(budgetData?.burn_rate_daily || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+            <span className="text-xs font-normal text-slate-500 font-sans">/day</span>
+          </p>
+          <span className="text-xs text-slate-500 block font-sans">
+            Estimated daily outlay across duration
+          </span>
+        </div>
+      </div>
+
+      {/* Main Budget Grid: Chart + Categories */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-7">
+        {/* Left 2 Cols: Interactive Visual Donut & Category Cards */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="neu-card p-7 space-y-6 shadow-neu-extruded">
+            <h2 className="font-display font-extrabold text-xl text-[#0F172A] flex items-center gap-2">
+              <span>Category Allocation Breakdown</span>
+              <span className="text-amber-primary">.</span>
+            </h2>
+
+            {/* Visual Budget Donut */}
+            <div className="pt-2">
+              <BudgetChart
+                categories={budgetData?.categories || {}}
+                totalSpent={totalSpent}
+              />
+            </div>
+          </div>
+
+          {/* Detailed 5 Standard Category Breakdowns */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {Object.entries(budgetData?.categories || {}).map(([key, cat]) => (
+              <div
+                key={key}
+                className="neu-card p-5 space-y-3 shadow-neu-extruded"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-mono uppercase tracking-wider font-bold text-slate-700 capitalize">
+                    {key}
+                  </span>
+                  <span className="text-xs font-mono font-bold text-slate-500">
+                    {cat.percentage}%
+                  </span>
+                </div>
+
+                <div className="flex items-baseline justify-between">
+                  <span className="font-mono font-bold text-xl text-[#0F172A]">
+                    ₹{parseFloat(cat.amount || 0).toLocaleString('en-IN')}
+                  </span>
+                </div>
+
+                {/* Progress bar */}
+                <div className="h-2 w-full bg-[#CBD5E1] rounded-full overflow-hidden shadow-neu-inset-sm">
                   <div
-                    key={sug.id}
-                    className="p-5 rounded-[20px] bg-white border border-slate-200 shadow-sm hover:border-slate-300 transition-all flex flex-col justify-between space-y-4"
+                    className="h-full bg-amber-primary transition-all duration-500"
+                    style={{ width: `${Math.min(parseFloat(cat.percentage), 100)}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Right 1 Col: Heuristic Savings Suggestions & Health Score */}
+        <div className="space-y-6">
+          {/* Smart Savings Heuristics */}
+          <div className="neu-card p-6 space-y-4 shadow-neu-extruded">
+            <div className="flex items-center gap-2 text-xs font-mono font-bold text-teal-accent uppercase tracking-wider">
+              <Sparkles className="w-4 h-4" />
+              <span>Smart Savings Heuristics</span>
+            </div>
+
+            <h3 className="font-display font-extrabold text-base text-[#0F172A]">
+              Automated Cost Optimization
+            </h3>
+
+            {budgetData?.savings_suggestions && budgetData.savings_suggestions.length > 0 ? (
+              <div className="space-y-3">
+                {budgetData.savings_suggestions.map((sug, i) => (
+                  <div
+                    key={i}
+                    className="p-3.5 rounded-2xl bg-[#DFE4EA] border border-slate-300 shadow-neu-inset-sm space-y-1.5 text-xs"
                   >
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="p-2 rounded-xl bg-red-50 text-[#c0392b]">
-                          {sug.type === 'activity_cut' ? (
-                            <Scissors className="w-4 h-4" />
-                          ) : sug.type === 'activity_swap' ? (
-                            <RefreshCw className="w-4 h-4" />
-                          ) : (
-                            <MapPin className="w-4 h-4" />
-                          )}
-                        </div>
-                        <span className="font-display font-bold text-base text-[#c0392b]">
-                          -₹{sug.estimated_savings.toLocaleString('en-IN')}
-                        </span>
-                      </div>
-
-                      <h4 className="font-display font-bold text-sm text-abyss">
-                        {sug.title}
-                      </h4>
-                      <p className="text-xs text-slate-500 leading-relaxed">
-                        {sug.description}
-                      </p>
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono font-bold uppercase text-amber-primary">
+                        {sug.category}
+                      </span>
+                      <span className="font-mono font-bold text-teal-accent">
+                        Save ~₹{sug.potential_saving_inr.toLocaleString('en-IN')}
+                      </span>
                     </div>
-
-                    <Link
-                      to={`/trips/${selectedTripId}/builder`}
-                      className="inline-flex items-center justify-center gap-1.5 w-full py-2 rounded-full bg-slate-100 hover:bg-slate-200 text-abyss font-bold text-xs transition-colors"
-                    >
-                      <span>Apply in Builder</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </Link>
+                    <p className="text-slate-600 font-sans">{sug.message}</p>
                   </div>
                 ))}
               </div>
             ) : (
-              /* Calm Confirmation State */
-              <div className="p-8 rounded-[20px] bg-white border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center gap-5">
-                <div className="w-12 h-12 rounded-full bg-ocean-teal/10 text-ocean-teal flex items-center justify-center flex-shrink-0">
-                  <CheckCircle2 className="w-6 h-6" />
-                </div>
-                <div className="space-y-1 text-center sm:text-left">
-                  <h4 className="font-display font-bold text-base text-abyss">
-                    Your Trip is Well Within Target Budget
-                  </h4>
-                  <p className="text-xs text-slate-500 leading-relaxed">
-                    {budgetData.under_budget_message || `You have ₹${savingsHeadroom.toLocaleString('en-IN')} in financial headroom.`}
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Logged Expenses Table */}
-          <div className="p-6 rounded-[20px] bg-white border border-slate-200 shadow-sm space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="font-display font-bold text-base text-abyss">
-                  Logged Manual Expenses
-                </h4>
-                <p className="text-xs text-slate-500">
-                  Flights, hotels, dining, and other expenditures tracked on this journey
-                </p>
-              </div>
-              <Button
-                variant="secondary"
-                size="sm"
-                icon={Plus}
-                onClick={() => setIsExpenseModalOpen(true)}
-              >
-                Add Expense
-              </Button>
-            </div>
-
-            {budgetData.expenses && budgetData.expenses.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-slate-100 text-slate-400 uppercase font-bold text-[10px]">
-                      <th className="pb-3 font-semibold">Category</th>
-                      <th className="pb-3 font-semibold">Note / Description</th>
-                      <th className="pb-3 font-semibold">City</th>
-                      <th className="pb-3 font-semibold text-right">Amount</th>
-                      <th className="pb-3 text-right"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {budgetData.expenses.map((exp) => (
-                      <tr key={exp.id} className="hover:bg-slate-50/60 transition-colors">
-                        <td className="py-3 font-bold text-abyss capitalize">
-                          🏷️ {exp.category}
-                        </td>
-                        <td className="py-3 text-slate-600">
-                          {exp.note || 'Manual expense entry'}
-                        </td>
-                        <td className="py-3 text-slate-500">
-                          {exp.trip_stop?.city?.name || 'Whole Trip'}
-                        </td>
-                        <td className="py-3 text-right font-bold text-abyss">
-                          ₹{parseFloat(exp.amount).toLocaleString('en-IN')}
-                        </td>
-                        <td className="py-3 text-right">
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteExpense(exp.id)}
-                            disabled={isDeletingExpense === exp.id}
-                            className="p-1 text-slate-400 hover:text-rose-600 transition-colors"
-                            title="Delete Expense"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <p className="text-xs text-slate-400 italic py-4 text-center">
-                No manual expenses logged yet. Itinerary activity costs are aggregated automatically.
+              <p className="text-xs text-slate-500 italic">
+                Your budget allocations look balanced! No high-burn optimizations triggered.
               </p>
             )}
           </div>
-        </>
-      )}
 
-      {/* Add Expense Modal */}
-      {selectedTripId && (
-        <AddExpenseModal
-          isOpen={isExpenseModalOpen}
-          onClose={() => setIsExpenseModalOpen(false)}
-          tripId={selectedTripId}
-          onExpenseAdded={() => fetchBudget(selectedTripId)}
-        />
-      )}
+          {/* Quick Expense History Log */}
+          <div className="neu-card p-6 space-y-4 shadow-neu-extruded">
+            <div className="flex items-center justify-between">
+              <h3 className="font-display font-extrabold text-base text-[#0F172A]">
+                Recent Expenses
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsExpenseModalOpen(true)}
+                className="text-xs font-display font-bold text-amber-primary hover:underline"
+              >
+                + Add Item
+              </button>
+            </div>
+
+            {budgetData?.expenses && budgetData.expenses.length > 0 ? (
+              <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
+                {budgetData.expenses.map((exp) => (
+                  <div
+                    key={exp.id}
+                    className="flex items-center justify-between p-3 rounded-2xl bg-[#DFE4EA] border border-slate-300 shadow-neu-inset-sm text-xs"
+                  >
+                    <div className="space-y-0.5">
+                      <span className="font-bold text-[#0F172A] block font-sans">
+                        {exp.description}
+                      </span>
+                      <span className="text-[10px] font-mono text-slate-500 uppercase">
+                        {exp.category}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <span className="font-mono font-bold text-amber-primary">
+                        ₹{parseFloat(exp.amount).toLocaleString('en-IN')}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteExpense(exp.id)}
+                        disabled={isDeletingExpense === exp.id}
+                        className="text-slate-400 hover:text-rose-600 transition-colors p-1"
+                        title="Delete expense"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-slate-500 italic">No manual expenses logged yet.</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Log Expense Modal */}
+      <AddExpenseModal
+        isOpen={isExpenseModalOpen}
+        onClose={() => setIsExpenseModalOpen(false)}
+        tripId={selectedTripId}
+        onExpenseAdded={() => {
+          success('Expense logged successfully');
+          fetchBudget(selectedTripId);
+        }}
+      />
     </div>
   );
 };

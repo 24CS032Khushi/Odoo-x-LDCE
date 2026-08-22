@@ -1,6 +1,6 @@
 import prisma from '../prisma.js';
 import { AppError } from '../shared/error-handler.js';
-import { fetchGeoDBCities, cacheGeoDBCities } from './geodb.service.js';
+import { searchLiveDestinations, persistLiveDestinations } from './places.service.js';
 
 export const getCities = async (req, res, next) => {
   try {
@@ -46,14 +46,14 @@ export const getCities = async (req, res, next) => {
       }
     });
 
-    // 2. Hybrid GeoDB Fallback if local results are fewer than 5 and a search query is given
-    if (search && search.trim().length >= 2 && localCities.length < 5) {
+    // 2. Live Global & Indian Places Search (OpenStreetMap + Geo Database)
+    // If local results are fewer than 3 and search query is at least 2 characters:
+    if (search && search.trim().length >= 2) {
       try {
-        const geoDBCities = await fetchGeoDBCities(search.trim(), country);
-        if (geoDBCities.length > 0) {
-          const cached = await cacheGeoDBCities(geoDBCities);
+        const liveDestinations = await searchLiveDestinations(search.trim(), country);
+        if (liveDestinations.length > 0) {
+          const cached = await persistLiveDestinations(liveDestinations);
 
-          // Merge any newly cached cities that aren't already in localCities list
           const existingIds = new Set(localCities.map((c) => c.id));
           const newEntries = cached.filter((c) => !existingIds.has(c.id));
 
@@ -61,15 +61,27 @@ export const getCities = async (req, res, next) => {
             localCities = [...localCities, ...newEntries];
           }
         }
-      } catch (err) {
-        // Silently handle any GeoDB exception so the user always gets a 200 response with local data
-        console.warn('[City Search] GeoDB live search handled gracefully:', err.message);
+      } catch (liveErr) {
+        console.warn('[Places Search API] Skipped live fetch:', liveErr.message);
       }
+    }
+
+    // 3. Incredible India Focus Priority: Place Indian destinations at the top by default
+    if (!search && !country && !sort) {
+      localCities.sort((a, b) => {
+        const aIndia = a.country?.toLowerCase() === 'india' ? 1 : 0;
+        const bIndia = b.country?.toLowerCase() === 'india' ? 1 : 0;
+        if (aIndia !== bIndia) return bIndia - aIndia;
+        return (b.popularity_score || 0) - (a.popularity_score || 0);
+      });
     }
 
     res.status(200).json({
       success: true,
-      data: { cities: localCities }
+      data: {
+        cities: localCities,
+        count: localCities.length,
+      }
     });
   } catch (error) {
     next(error);
@@ -78,17 +90,11 @@ export const getCities = async (req, res, next) => {
 
 export const getCityById = async (req, res, next) => {
   try {
-    const cityId = parseInt(req.params.id, 10);
-    if (isNaN(cityId)) {
-      throw new AppError('Invalid city ID', 400, 'INVALID_ID');
-    }
-
+    const { id } = req.params;
     const city = await prisma.city.findUnique({
-      where: { id: cityId },
+      where: { id: parseInt(id, 10) },
       include: {
-        activities: {
-          orderBy: { cost: 'asc' }
-        }
+        activities: true,
       }
     });
 
@@ -99,6 +105,78 @@ export const getCityById = async (req, res, next) => {
     res.status(200).json({
       success: true,
       data: { city }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getRecommendations = async (req, res, next) => {
+  try {
+    const { interests } = req.query;
+
+    let userInterests = [];
+    if (interests) {
+      userInterests = interests.split(',').map((i) => i.trim().toLowerCase());
+    } else if (req.user?.interests) {
+      userInterests = req.user.interests.split(',').map((i) => i.trim().toLowerCase());
+    }
+
+    const cities = await prisma.city.findMany({
+      include: {
+        activities: true,
+        _count: { select: { activities: true } }
+      }
+    });
+
+    const scored = cities.map((city) => {
+      let score = 50; // base score
+      let matchReason = 'Popular global destination';
+
+      // 1. Incredible India Priority Boost (+10 points to prioritize Indian destinations)
+      const isIndia = city.country?.toLowerCase() === 'india';
+      if (isIndia) {
+        score += 10;
+        matchReason = 'Incredible India • Top cultural & heritage hotspot';
+      }
+
+      // 2. Activity / Category Matching with User Passions
+      const cityCategories = city.activities.map((a) => a.category.toLowerCase());
+      const matchingInterests = userInterests.filter((interest) =>
+        cityCategories.includes(interest)
+      );
+
+      if (matchingInterests.length > 0) {
+        score += matchingInterests.length * 15;
+        if (isIndia) {
+          matchReason = `Incredible India • Top match for ${matchingInterests.join(' & ')}`;
+        } else {
+          matchReason = `Matches your passion for ${matchingInterests.join(' & ')}`;
+        }
+      }
+
+      // 3. Popularity score influence
+      score += Math.round(parseFloat(city.popularity_score || 5) * 4);
+
+      // Cap score at 99
+      const finalScore = Math.min(99, Math.max(65, score));
+
+      return {
+        ...city,
+        match_score: finalScore,
+        match_reason: matchReason,
+      };
+    });
+
+    // Sort descending by match score
+    scored.sort((a, b) => b.match_score - a.match_score);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        recommendations: scored,
+        count: scored.length,
+      }
     });
   } catch (error) {
     next(error);

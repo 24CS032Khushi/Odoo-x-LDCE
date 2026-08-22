@@ -7,7 +7,7 @@ export const Modal = ({
   title,
   description,
   children,
-  maxWidth = 'max-w-md',
+  maxWidth = 'max-w-lg',
   showCloseButton = true,
 }) => {
   useEffect(() => {
@@ -33,41 +33,46 @@ export const Modal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
-      {/* Backdrop */}
+    <div className="fixed inset-0 z-[100] overflow-y-auto" role="dialog" aria-modal="true">
+      {/* Off-White Tactile Backdrop with Deep Blur (z-[100] to sit ABOVE floating navbar z-40) */}
       <div
-        className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity animate-fade-in"
+        className="fixed inset-0 bg-slate-900/50 backdrop-blur-md transition-opacity animate-fade-in"
         onClick={onClose}
       />
 
-      {/* Modal Dialog Positioner */}
-      <div className="min-h-full flex items-center justify-center p-4 sm:p-6 text-center">
+      {/* Modal Dialog Centering Wrapper */}
+      <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 text-center">
         <div
-          className={`relative w-full ${maxWidth} transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all border border-slate-100 animate-scale-up`}
+          className={`relative w-full ${maxWidth} transform overflow-hidden rounded-[32px] neu-modal text-[#0F172A] text-left transition-all animate-scale-up z-10 shadow-neu-modal`}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
           {(title || showCloseButton) && (
-            <div className="flex items-start justify-between p-6 pb-4 border-b border-slate-100">
-              <div>
-                {title && <h3 className="text-lg font-bold text-slate-900">{title}</h3>}
-                {description && <p className="text-sm text-slate-500 mt-1">{description}</p>}
+            <div className="flex items-start justify-between p-6 sm:p-7 pb-4 border-b border-slate-300/80">
+              <div className="space-y-1">
+                {title && (
+                  <h3 className="text-xl sm:text-2xl font-display font-extrabold text-[#0F172A] tracking-tight flex items-center gap-1.5">
+                    <span>{title}</span>
+                    <span className="text-amber-primary">.</span>
+                  </h3>
+                )}
+                {description && <p className="text-xs text-slate-600 font-sans">{description}</p>}
               </div>
               {showCloseButton && (
                 <button
                   type="button"
                   onClick={onClose}
-                  className="rounded-lg p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="rounded-full p-2 text-slate-500 hover:text-[#0F172A] bg-[#DFE4EA] border border-slate-300 hover:border-amber-primary/40 shadow-neu-inset-sm transition-all focus:outline-none"
                   aria-label="Close dialog"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4" />
                 </button>
               )}
             </div>
           )}
 
-          {/* Body */}
-          <div className="p-6">{children}</div>
+          {/* Body with max-height scroll protection */}
+          <div className="p-6 sm:p-7 max-h-[calc(85vh-120px)] overflow-y-auto">{children}</div>
         </div>
       </div>
     </div>

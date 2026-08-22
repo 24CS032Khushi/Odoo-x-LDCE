@@ -3,24 +3,38 @@ import { useNavigate } from 'react-router-dom';
 import {
   User,
   Mail,
-  Globe,
-  Upload,
-  Calendar,
   Save,
   Trash2,
   Heart,
-  MapPin,
   AlertTriangle,
+  Flame,
+  Check,
+  Upload,
   Camera,
-  Check
+  Calendar,
+  Compass,
+  Wallet,
+  Sparkles,
+  ArrowRight
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import Card, { CardHeader, CardTitle, CardDescription, CardBody, CardFooter, PhotoCard } from '../../components/shared/Card';
+import Card, { PhotoCard } from '../../components/shared/Card';
 import FormInput from '../../components/shared/FormInput';
 import Button from '../../components/shared/Button';
 import Modal from '../../components/shared/Modal';
 import api from '../../services/api';
+
+const AVAILABLE_INTERESTS = [
+  { id: 'culture', label: '🏛️ Culture & Heritage' },
+  { id: 'food', label: '🍜 Gastronomy & Food' },
+  { id: 'adventure', label: '🧗 Adventure & Trekking' },
+  { id: 'relaxation', label: '🏖️ Beaches & Relaxation' },
+  { id: 'sightseeing', label: '📸 Iconic Sightseeing' },
+  { id: 'nightlife', label: '🍸 Nightlife & Clubs' },
+  { id: 'nature', label: '🌲 Nature & Wildlife' },
+  { id: 'budget', label: '💰 Budget Conscious' }
+];
 
 export const ProfilePage = () => {
   const { user, updateProfile, logout } = useAuth();
@@ -31,16 +45,16 @@ export const ProfilePage = () => {
   const [formData, setFormData] = useState({
     name: user?.name || '',
     photo_url: user?.photo_url || '',
-    language: 'en',
   });
+
+  const [userInterests, setUserInterests] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasChanged, setHasChanged] = useState(false);
 
-  // Saved destinations state
   const [savedDestinations, setSavedDestinations] = useState([]);
+  const [userTrips, setUserTrips] = useState([]);
   const [loadingSaved, setLoadingSaved] = useState(true);
 
-  // Delete account state
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
@@ -49,27 +63,47 @@ export const ProfilePage = () => {
       setFormData({
         name: user.name || '',
         photo_url: user.photo_url || '',
-        language: 'en',
       });
+
+      const initialInterests = user.interests
+        ? user.interests.split(',').map((i) => i.trim()).filter(Boolean)
+        : ['culture', 'food', 'sightseeing'];
+      setUserInterests(initialInterests);
     }
-    fetchSavedDestinations();
+    fetchData();
   }, [user]);
 
-  const fetchSavedDestinations = async () => {
+  const fetchData = async () => {
     try {
-      const res = await api.get('/saved-destinations');
-      if (res.success) {
-        setSavedDestinations(res.data.saved);
+      const [savedRes, tripsRes] = await Promise.all([
+        api.get('/saved-destinations').catch(() => ({ data: { saved: [] } })),
+        api.get('/trips').catch(() => ({ data: { trips: [] } }))
+      ]);
+
+      if (savedRes.data?.saved) {
+        setSavedDestinations(savedRes.data.saved);
+      }
+      if (tripsRes.data?.trips) {
+        setUserTrips(tripsRes.data.trips);
       }
     } catch (err) {
-      console.error('Failed to fetch saved destinations', err);
+      console.error('Failed to fetch profile stats', err);
     } finally {
       setLoadingSaved(false);
     }
   };
 
+  const toggleInterest = (interestId) => {
+    setUserInterests((prev) => {
+      const exists = prev.includes(interestId);
+      const next = exists ? prev.filter((i) => i !== interestId) : [...prev, interestId];
+      setHasChanged(true);
+      return next;
+    });
+  };
+
   const handleRemoveSaved = async (cityId, e) => {
-    e.stopPropagation();
+    e?.stopPropagation?.();
     try {
       await api.delete(`/saved-destinations/${cityId}`);
       setSavedDestinations((prev) => prev.filter((c) => c.id !== cityId));
@@ -83,33 +117,31 @@ export const ProfilePage = () => {
     const { name, value } = e.target;
     setFormData((prev) => {
       const updated = { ...prev, [name]: value };
-      setHasChanged(
-        updated.name !== user?.name ||
-        updated.photo_url !== (user?.photo_url || '')
-      );
+      setHasChanged(true);
       return updated;
     });
   };
 
-  // Handle local image file browse
-  const handleFileChange = (e) => {
+  const handlePhotoUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 2 * 1024 * 1024) {
-      toastError('Image size should be less than 2MB.');
+    if (!file.type.startsWith('image/')) {
+      toastError('Please select a valid image file (PNG, JPG, JPEG, WEBP).');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toastError('Image size should be under 5MB.');
       return;
     }
 
     const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result;
-      setFormData((prev) => ({ ...prev, photo_url: result }));
+    reader.onload = (event) => {
+      const base64Data = event.target?.result;
+      setFormData((prev) => ({ ...prev, photo_url: base64Data }));
       setHasChanged(true);
-      success('Image loaded! Click "Save Changes" to apply.');
-    };
-    reader.onerror = () => {
-      toastError('Failed to read image file.');
+      success('Photo loaded! Tap "Save Changes" to apply.');
     };
     reader.readAsDataURL(file);
   };
@@ -117,7 +149,9 @@ export const ProfilePage = () => {
   const handleRemovePhoto = () => {
     setFormData((prev) => ({ ...prev, photo_url: '' }));
     setHasChanged(true);
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -132,9 +166,9 @@ export const ProfilePage = () => {
       await updateProfile({
         name: formData.name.trim(),
         photo_url: formData.photo_url || null,
-        language: 'en',
+        interests: userInterests
       });
-      success('Profile updated successfully!');
+      success('Profile and preferences updated!');
       setHasChanged(false);
     } catch (err) {
       toastError(err.message || 'Failed to update profile.');
@@ -156,197 +190,219 @@ export const ProfilePage = () => {
     }
   };
 
-  const formattedJoinDate = user?.created_at
-    ? new Date(user.created_at).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      })
-    : 'Recently';
+  const getInitials = (name) => {
+    if (!name) return 'GT';
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+  };
+
+  const totalPlannedBudget = userTrips.reduce((acc, t) => acc + parseFloat(t.total_budget || 0), 0);
 
   return (
-    <div className="space-y-10 animate-fade-in">
-      <div>
-        <h1 className="text-3xl font-bold text-abyss font-display tracking-tight">
-          Profile & Preferences
-        </h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Manage your personal details, profile picture, saved destinations, and account settings.
-        </p>
-      </div>
-
-      {/* Account Settings Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Profile Card Summary */}
-        <Card className="md:col-span-1 h-fit">
-          <CardBody className="flex flex-col items-center text-center p-6 space-y-4">
-            <div className="relative group">
-              <div className="w-24 h-24 rounded-full bg-ocean-teal/10 text-ocean-teal font-extrabold text-2xl flex items-center justify-center border-4 border-white shadow-lg overflow-hidden">
+    <div className="space-y-10 animate-fade-in text-[#0F172A] font-sans">
+      {/* 1. Header Traveler Hero Banner */}
+      <div className="neu-card p-6 sm:p-8 relative overflow-hidden shadow-neu-extruded border border-black/10">
+        <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-6">
+          {/* Avatar & Identity Info */}
+          <div className="flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left">
+            <div className="relative group flex-shrink-0">
+              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-[#CBD5E1] border-2 border-amber-primary text-amber-primary font-display font-black text-3xl flex items-center justify-center overflow-hidden shadow-md">
                 {formData.photo_url ? (
                   <img
                     src={formData.photo_url}
-                    alt={formData.name}
+                    alt={formData.name || 'User Avatar'}
                     className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = '';
-                    }}
                   />
                 ) : (
-                  user?.name?.substring(0, 2).toUpperCase() || 'GT'
+                  <span>{getInitials(formData.name || user?.name)}</span>
                 )}
               </div>
+
+              {/* Quick camera upload overlay */}
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="absolute bottom-0 right-0 p-2 rounded-full bg-ocean-teal text-white shadow-md hover:bg-ocean-deep transition-transform hover:scale-105"
-                title="Browse Photo"
+                className="absolute -bottom-1 -right-1 p-2 rounded-2xl bg-amber-primary text-white shadow-md hover:bg-amber-600 transition-all border border-white"
+                title="Change Avatar Photo"
               >
-                <Camera className="w-3.5 h-3.5" />
+                <Camera className="w-4 h-4" />
               </button>
+
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/*"
+                onChange={handlePhotoUpload}
+                className="hidden"
+              />
             </div>
 
-            <div>
-              <h3 className="text-lg font-bold text-abyss font-display">{user?.name}</h3>
-              <p className="text-xs text-slate-500 mt-0.5">{user?.email}</p>
-              {user?.role === 'admin' && (
-                <span className="inline-block mt-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-700 border border-amber-500/30">
-                  Platform Admin
-                </span>
-              )}
-            </div>
-
-            <div className="w-full pt-4 border-t border-slate-100 space-y-2.5 text-xs text-left">
-              <div className="flex items-center justify-between text-slate-600">
-                <span className="flex items-center gap-1.5 text-slate-400">
-                  <Calendar className="w-3.5 h-3.5" />
-                  Joined:
-                </span>
-                <span className="font-semibold text-slate-700">{formattedJoinDate}</span>
-              </div>
-              <div className="flex items-center justify-between text-slate-600">
-                <span className="flex items-center gap-1.5 text-slate-400">
-                  <Globe className="w-3.5 h-3.5" />
-                  Language:
-                </span>
-                <span className="font-semibold text-ocean-teal bg-ocean-teal/10 px-2.5 py-0.5 rounded-full">
-                  English (EN)
+            <div className="space-y-1.5">
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                <h1 className="font-display text-2xl sm:text-3xl font-black text-[#0F172A] tracking-tight">
+                  {formData.name || 'Explorer'}
+                </h1>
+                <span className="px-2.5 py-0.5 rounded-full bg-teal-50 text-teal-700 border border-teal-200 text-xs font-mono font-bold">
+                  Verified Traveler
                 </span>
               </div>
-            </div>
-          </CardBody>
-        </Card>
 
-        {/* Edit Form */}
-        <div className="md:col-span-2">
-          <form onSubmit={handleSubmit}>
-            <Card>
-              <CardHeader>
-                <CardTitle>Edit Account Information</CardTitle>
-                <CardDescription>
-                  Update your display name and upload a profile photo from your device.
-                </CardDescription>
-              </CardHeader>
+              <p className="text-xs text-slate-600 font-mono">
+                {user?.email || 'traveler@globetrotter.com'}
+              </p>
 
-              <CardBody className="space-y-5">
-                <FormInput
-                  label="Full Name"
-                  name="name"
-                  type="text"
-                  placeholder="Your Name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  leftIcon={User}
-                  required
-                />
-
-                <FormInput
-                  label="Email Address"
-                  name="email"
-                  type="email"
-                  value={user?.email || ''}
-                  disabled
-                  leftIcon={Mail}
-                  helperText="Email cannot be changed directly."
-                />
-
-                {/* Browse Photo File Upload Control */}
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-slate-700 tracking-wide">
-                    Profile Photo
-                  </label>
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileChange}
-                      className="hidden"
-                    />
-
+              <div className="flex items-center justify-center sm:justify-start gap-2 pt-1 text-xs text-slate-500 font-mono">
+                <span>Joined GlobeTrotter 2026</span>
+                <span>•</span>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="font-bold text-amber-primary hover:underline"
+                >
+                  Browse New Photo
+                </button>
+                {formData.photo_url && (
+                  <>
+                    <span>•</span>
                     <button
                       type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs font-bold text-abyss transition-all shadow-xs"
+                      onClick={handleRemovePhoto}
+                      className="text-rose-600 hover:underline"
                     >
-                      <Upload className="w-4 h-4 text-ocean-teal" />
-                      <span>Browse Photo from Device</span>
+                      Remove
                     </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
 
-                    {formData.photo_url && (
-                      <button
-                        type="button"
-                        onClick={handleRemovePhoto}
-                        className="text-xs text-rose-600 hover:underline font-semibold"
-                      >
-                        Remove photo
-                      </button>
-                    )}
-                  </div>
-                  <p className="text-[11px] text-slate-400">
-                    Supports PNG, JPG, or GIF up to 2MB. Preview updates instantly.
-                  </p>
-                </div>
-
-                {/* System Language (English Only) */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-slate-700 tracking-wide">
-                    System Language
-                  </label>
-                  <div className="flex items-center gap-2 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700">
-                    <Globe className="w-4 h-4 text-ocean-teal" />
-                    <span>English (EN)</span>
-                    <span className="ml-auto text-[10px] text-slate-400 font-semibold uppercase">Default</span>
-                  </div>
-                </div>
-              </CardBody>
-
-              <CardFooter className="justify-end">
-                <Button
-                  type="submit"
-                  variant="primary"
-                  size="md"
-                  disabled={!hasChanged}
-                  isLoading={isSubmitting}
-                  icon={Save}
-                >
-                  Save Changes
-                </Button>
-              </CardFooter>
-            </Card>
-          </form>
+          {/* Quick Telemetry Badges on the right */}
+          <div className="grid grid-cols-3 gap-2.5 w-full sm:w-auto">
+            <div className="p-3.5 rounded-2xl bg-[#CBD5E1] border border-black/5 text-center min-w-[85px] shadow-neu-inset-sm">
+              <span className="text-[10px] font-mono font-bold uppercase text-slate-600 block">Trips</span>
+              <span className="font-display font-black text-lg text-[#0F172A]">{userTrips.length}</span>
+            </div>
+            <div className="p-3.5 rounded-2xl bg-[#CBD5E1] border border-black/5 text-center min-w-[85px] shadow-neu-inset-sm">
+              <span className="text-[10px] font-mono font-bold uppercase text-slate-600 block">Saved</span>
+              <span className="font-display font-black text-lg text-amber-primary">{savedDestinations.length}</span>
+            </div>
+            <div className="p-3.5 rounded-2xl bg-[#CBD5E1] border border-black/5 text-center min-w-[85px] shadow-neu-inset-sm">
+              <span className="text-[10px] font-mono font-bold uppercase text-slate-600 block">Interests</span>
+              <span className="font-display font-black text-lg text-teal-accent">{userInterests.length}</span>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* 2. Saved Destinations Gallery */}
-      <div className="space-y-4">
-        <div>
-          <h2 className="font-display text-2xl font-bold text-abyss tracking-tight">
-            Saved Destinations
-          </h2>
-          <p className="text-sm text-slate-500 mt-0.5">
-            Cities you’ve bookmarked for upcoming journeys
-          </p>
+      {/* 2. Personal Details Form */}
+      <form onSubmit={handleSubmit} className="neu-card p-6 sm:p-8 space-y-6 shadow-neu-extruded">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-300/80">
+          <div>
+            <h3 className="font-display font-extrabold text-xl text-[#0F172A] flex items-center gap-1">
+              <span>Personal Details</span>
+              <span className="text-amber-primary">.</span>
+            </h3>
+            <p className="text-xs text-slate-500">
+              Update your explorer name and account settings.
+            </p>
+          </div>
+
+          <Button
+            type="submit"
+            variant="primary"
+            size="md"
+            disabled={!hasChanged}
+            isLoading={isSubmitting}
+            icon={Save}
+          >
+            Save All Changes
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <FormInput
+            label="Explorer Full Name"
+            name="name"
+            type="text"
+            placeholder="Your Name"
+            value={formData.name}
+            onChange={handleChange}
+            leftIcon={User}
+            required
+          />
+
+          <FormInput
+            label="Email Address"
+            name="email"
+            type="email"
+            value={user?.email || ''}
+            disabled
+            leftIcon={Mail}
+            helperText="Primary email tied to your account."
+          />
+        </div>
+      </form>
+
+      {/* 3. Travel Passion & Interest Selection Matrix */}
+      <div className="neu-card p-6 sm:p-8 space-y-4 shadow-neu-extruded">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-[#CBD5E1] border border-slate-300 text-amber-primary flex items-center justify-center shadow-neu-inset-sm">
+            <Flame className="w-4 h-4 text-amber-primary" />
+          </div>
+          <div>
+            <h3 className="font-display font-extrabold text-xl text-[#0F172A] flex items-center gap-1">
+              <span>My Travel Passions & Interests</span>
+              <span className="text-amber-primary">.</span>
+            </h3>
+            <p className="text-xs text-slate-500">
+              Select what you love most. The AI recommendation engine customizes destination suggestions based on these.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+          {AVAILABLE_INTERESTS.map((item) => {
+            const isSelected = userInterests.includes(item.id);
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => toggleInterest(item.id)}
+                className={`p-3.5 rounded-2xl text-left font-display font-extrabold text-xs sm:text-sm transition-all duration-150 flex items-center justify-between border ${
+                  isSelected
+                    ? 'neu-btn-primary border-slate-300 shadow-neu-amber scale-[1.02] text-white'
+                    : 'bg-[#CBD5E1] text-slate-700 hover:text-[#0F172A] border-slate-300 hover:border-amber-primary/40 shadow-neu-inset-sm'
+                }`}
+              >
+                <span>{item.label}</span>
+                {isSelected && <Check className="w-4 h-4 text-white stroke-[3]" />}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 4. Saved Destinations Photo Gallery */}
+      <div className="space-y-5">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="font-display font-extrabold text-2xl text-[#0F172A] flex items-center gap-1">
+              <span>Saved Places</span>
+              <span className="text-amber-primary">.</span>
+            </h2>
+            <p className="text-xs text-slate-600 mt-0.5">
+              Destinations you bookmarked from Discover for future journeys
+            </p>
+          </div>
+
+          <Button variant="secondary" size="sm" onClick={() => navigate('/discover')}>
+            Explore Catalog
+          </Button>
         </div>
 
         {savedDestinations.length > 0 ? (
@@ -356,51 +412,45 @@ export const ProfilePage = () => {
                 <button
                   type="button"
                   onClick={(e) => handleRemoveSaved(city.id, e)}
-                  className="absolute top-4 right-4 z-20 w-8 h-8 rounded-full bg-black/40 text-rose-400 hover:text-white hover:bg-rose-500 flex items-center justify-center backdrop-blur-md transition-colors"
+                  className="absolute top-4 right-4 z-30 w-9 h-9 rounded-2xl bg-white/90 text-rose-600 hover:text-white hover:bg-rose-500 flex items-center justify-center transition-all shadow-md border border-white"
                   title="Remove from saved"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <Trash2 className="w-4 h-4" />
                 </button>
 
                 <PhotoCard
                   imageUrl={city.image_url}
                   title={city.name}
-                  subtitle={`${city.country} • ${parseFloat(city.cost_index || 1.0).toFixed(1)}x Cost`}
-                  badge={`${city.activities?.length || 5} Activities`}
-                  badgeColor="bg-ocean-deep/80 text-white"
-                  actionLabel="Explore City"
+                  subtitle={`${city.country} • ${city.cost_index}x Cost Index`}
+                  badge={`★ ${city.popularity_score}`}
+                  actionLabel="Plan Stop"
                   onAction={() => navigate('/discover')}
                 />
               </div>
             ))}
           </div>
         ) : (
-          <div className="bg-white border border-slate-200 rounded-[20px] p-8 text-center max-w-md mx-auto space-y-2">
-            <Heart className="w-8 h-8 text-slate-300 mx-auto" />
-            <h4 className="font-bold text-sm text-abyss">No saved destinations yet</h4>
+          <div className="neu-card p-10 text-center max-w-md mx-auto space-y-3 shadow-neu-extruded">
+            <Heart className="w-10 h-10 text-slate-400 mx-auto" />
+            <h4 className="font-display font-bold text-base text-[#0F172A]">No saved destinations yet</h4>
             <p className="text-xs text-slate-500">
-              Browse the Discover page and tap the heart icon to save your favorite travel spots.
+              Browse the Discover catalog and tap the heart icon to save favorite travel destinations.
             </p>
-            <div className="pt-2">
-              <Button variant="outline" size="sm" onClick={() => navigate('/discover')}>
-                Discover Cities
-              </Button>
-            </div>
           </div>
         )}
       </div>
 
-      {/* 3. Danger Zone: Delete Account */}
-      <div className="bg-rose-50/50 border border-rose-200 rounded-[20px] p-6 space-y-3">
-        <div className="flex items-center gap-2 text-rose-700 font-bold text-sm">
-          <AlertTriangle className="w-4 h-4" />
+      {/* 5. Danger Zone: Delete Account */}
+      <div className="neu-card p-6 border border-rose-400/50 bg-[#E2E8F0] space-y-3">
+        <div className="flex items-center gap-2 text-rose-600 font-display font-extrabold text-sm">
+          <AlertTriangle className="w-5 h-5 text-rose-600" />
           <span>Danger Zone</span>
         </div>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h4 className="font-bold text-sm text-rose-900">Delete Account</h4>
-            <p className="text-xs text-rose-700/80 mt-0.5">
-              Permanently delete your profile, trips, stops, and saved data. This action cannot be undone.
+            <h4 className="font-display font-bold text-base text-[#0F172A]">Delete Traveler Account</h4>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Permanently delete your profile, scheduled itineraries, stops, and bookmarks.
             </p>
           </div>
           <Button
@@ -419,10 +469,10 @@ export const ProfilePage = () => {
         isOpen={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
         title="Confirm Account Deletion"
-        description="Are you absolutely sure? All your trips, itineraries, and bookmarks will be erased permanently."
+        description="Are you absolutely sure? All your itineraries, stops, and saved bookmarks will be deleted permanently."
         maxWidth="max-w-md"
       >
-        <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
+        <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-300">
           <Button variant="ghost" size="md" onClick={() => setDeleteModalOpen(false)}>
             Cancel
           </Button>

@@ -62,28 +62,28 @@ export const AddExpenseModal = ({ isOpen, onClose, tripId, stops = [], onExpense
       isOpen={isOpen}
       onClose={onClose}
       title="Log Trip Expense"
-      description="Track manual expenditures like hotel bookings, flight tickets, dining, or transfers."
+      description="Track expenditures like hotel bookings, flight tickets, dining, or transfers in INR (₹)"
       maxWidth="max-w-md"
     >
       <form onSubmit={handleSubmit} className="space-y-4 pt-1">
         {errorMsg && (
-          <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-[#c0392b] text-xs font-semibold">
+          <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 text-xs font-semibold">
             {errorMsg}
           </div>
         )}
 
         {/* Category Selector */}
-        <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+        <div className="space-y-1.5">
+          <label className="text-[10px] font-mono font-extrabold uppercase tracking-widest text-slate-500">
             Expense Category
           </label>
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            className="w-full px-4 py-2.5 rounded-full bg-slate-50 border border-slate-200 text-xs font-medium text-abyss focus:outline-none focus:border-ocean-teal"
+            className="w-full text-sm bg-[#DFE4EA] text-[#0F172A] rounded-2xl neu-input px-4 py-3 outline-none focus:border-amber-primary border border-slate-300"
           >
             {CATEGORIES.map((cat) => (
-              <option key={cat.value} value={cat.value}>
+              <option key={cat.value} value={cat.value} className="bg-[#E5EAF0] text-[#0F172A]">
                 {cat.label}
               </option>
             ))}
@@ -95,10 +95,11 @@ export const AddExpenseModal = ({ isOpen, onClose, tripId, stops = [], onExpense
           label="Amount in INR (₹)"
           name="amount"
           type="number"
+          step="50"
           placeholder="e.g. 8500"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
-          icon={DollarSign}
+          leftIcon={DollarSign}
           required
         />
 
@@ -110,23 +111,23 @@ export const AddExpenseModal = ({ isOpen, onClose, tripId, stops = [], onExpense
           placeholder="e.g. Shinkansen tickets or Hotel deposit"
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          icon={FileText}
+          leftIcon={FileText}
         />
 
         {/* Destination Stop Selector */}
         {stops && stops.length > 0 && (
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-mono font-extrabold uppercase tracking-widest text-slate-500">
               Associated Destination (Optional)
             </label>
             <select
               value={tripStopId}
               onChange={(e) => setTripStopId(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-full bg-slate-50 border border-slate-200 text-xs font-medium text-abyss focus:outline-none focus:border-ocean-teal"
+              className="w-full text-sm bg-[#DFE4EA] text-[#0F172A] rounded-2xl neu-input px-4 py-3 outline-none focus:border-amber-primary border border-slate-300"
             >
-              <option value="">General (Whole Trip)</option>
+              <option value="" className="bg-[#E5EAF0] text-[#0F172A]">General (Whole Trip)</option>
               {stops.map((stop) => (
-                <option key={stop.id} value={stop.id}>
+                <option key={stop.id} value={stop.id} className="bg-[#E5EAF0] text-[#0F172A]">
                   {stop.city?.name}, {stop.city?.country}
                 </option>
               ))}
@@ -134,7 +135,7 @@ export const AddExpenseModal = ({ isOpen, onClose, tripId, stops = [], onExpense
           </div>
         )}
 
-        <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
+        <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-200">
           <Button variant="ghost" size="md" onClick={onClose} type="button">
             Cancel
           </Button>

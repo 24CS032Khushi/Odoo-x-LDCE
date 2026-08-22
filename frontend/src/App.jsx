@@ -8,6 +8,7 @@ import Layout from './components/layout/Layout';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 
 // Pages
+import LandingPage from './pages/landing/LandingPage';
 import LoginPage from './pages/auth/LoginPage';
 import SignupPage from './pages/auth/SignupPage';
 import DashboardPage from './pages/dashboard/DashboardPage';
@@ -35,10 +36,13 @@ const PublicOnlyRoute = ({ children }) => {
 export function AppRoutes() {
   return (
     <Routes>
-      {/* Public Share Itinerary Route (NO AUTH REQUIRED) */}
+      {/* 1. Public Animated Cinematic Landing Page */}
+      <Route path="/" element={<LandingPage />} />
+
+      {/* 2. Public Share Itinerary Route (NO AUTH REQUIRED) */}
       <Route path="/share/:shareSlug" element={<PublicSharePage />} />
 
-      {/* Public Auth Routes */}
+      {/* 3. Public Auth Routes */}
       <Route
         path="/login"
         element={
@@ -56,10 +60,9 @@ export function AppRoutes() {
         }
       />
 
-      {/* Protected App Routes with Persistent Floating Navbar Layout */}
+      {/* 4. Protected App Routes with Persistent Floating Navbar Layout & Living Slideshow */}
       <Route element={<ProtectedRoute />}>
         <Route element={<Layout />}>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/trips" element={<TripsPage />} />
@@ -75,7 +78,7 @@ export function AppRoutes() {
       </Route>
 
       {/* Fallback */}
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

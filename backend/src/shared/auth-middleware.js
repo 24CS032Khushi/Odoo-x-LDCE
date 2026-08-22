@@ -35,6 +35,7 @@ export const requireAuth = async (req, res, next) => {
         role: true,
         photo_url: true,
         language: true,
+        interests: true,
         last_active: true,
         created_at: true
       }
@@ -56,6 +57,42 @@ export const requireAuth = async (req, res, next) => {
     next();
   } catch (error) {
     next(error);
+  }
+};
+
+export const optionalAuth = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return next();
+    }
+
+    const token = authHeader.split(' ')[1];
+    if (!token) return next();
+
+    const secret = process.env.JWT_SECRET || 'globetrotter_default_secret_key_2026';
+    const decoded = jwt.verify(token, secret);
+
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        photo_url: true,
+        language: true,
+        interests: true
+      }
+    });
+
+    if (user) {
+      req.user = user;
+    }
+    next();
+  } catch (err) {
+    // If token invalid, simply proceed as unauthenticated
+    next();
   }
 };
 

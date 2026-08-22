@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { User, LogOut, ChevronDown, Menu, X, Plane, Shield, Calendar, Wallet, Scale } from 'lucide-react';
+import { User, LogOut, ChevronDown, Menu, X, Plane, Shield, Calendar, Wallet, Scale, Sparkles } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 
@@ -13,6 +13,9 @@ export const Navbar = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const dropdownRef = useRef(null);
+
+  // Check if we are on Login or Signup hero screen (which uses the dark cinematic photographic hero)
+  const isAuthHeroPage = location.pathname === '/login' || location.pathname === '/signup';
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -59,34 +62,54 @@ export const Navbar = () => {
   const currentNavLinks = isAuthenticated ? authNavLinks : publicNavLinks;
 
   return (
-    <div className="w-full z-40 px-4 sm:px-6 lg:px-8 pt-5 sm:pt-6 sticky top-0">
-      <nav className="max-w-6xl mx-auto glass-navbar-floating px-5 sm:px-7 py-3 sm:py-3.5 transition-all duration-200">
+    <div className="fixed top-0 inset-x-0 z-40 px-4 sm:px-6 lg:px-8 pt-4 sm:pt-5 pointer-events-none">
+      <nav
+        className={`max-w-6xl mx-auto px-5 sm:px-7 py-3 sm:py-3.5 pointer-events-auto transition-all duration-200 ${
+          isAuthHeroPage
+            ? 'glass-navbar-floating text-white'
+            : 'neu-navbar text-[#0F172A]'
+        }`}
+      >
         <div className="flex items-center justify-between">
           {/* Brand Logo */}
           <Link to={isAuthenticated ? '/dashboard' : '/login'} className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center text-white border border-white/25 shadow-inner group-hover:scale-105 transition-transform">
-              <Plane className="w-4 h-4 text-white transform -rotate-45" />
+            <div
+              className={`w-9 h-9 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-105 ${
+                isAuthHeroPage
+                  ? 'bg-white/15 text-white border border-white/30 backdrop-blur-md'
+                  : 'bg-[#DFE4EA] text-amber-primary border border-slate-300 shadow-neu-inset-sm'
+              }`}
+            >
+              <Plane className="w-4 h-4 transform -rotate-45" />
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="font-display font-bold text-white text-lg tracking-tight">
+            <div className="flex items-baseline gap-0.5">
+              <span className={`font-display font-extrabold text-lg tracking-tight ${isAuthHeroPage ? 'text-white' : 'text-[#0F172A]'}`}>
                 GlobeTrotter
               </span>
-              <span className="w-1.5 h-1.5 rounded-full bg-ocean-tint animate-pulse"></span>
+              <span className="font-display font-black text-xl text-amber-primary">.</span>
             </div>
           </Link>
 
-          {/* Center Navigation Links */}
-          <div className="hidden md:flex items-center gap-5 lg:gap-7">
+          {/* Center Segmented Tab Navigation */}
+          <div
+            className={`hidden md:flex items-center gap-1.5 p-1 rounded-2xl ${
+              isAuthHeroPage ? 'bg-black/20 backdrop-blur-md border border-white/10' : 'neu-inset'
+            }`}
+          >
             {currentNavLinks.map((item) => {
               const isActive = location.pathname === item.path;
               return (
                 <Link
                   key={item.label}
                   to={item.path}
-                  className={`text-xs lg:text-sm font-medium tracking-tight transition-all duration-150 ${
-                    isActive
-                      ? 'text-white font-semibold underline underline-offset-8 decoration-white/70 decoration-2'
-                      : 'text-white/80 hover:text-white'
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-display font-bold transition-all duration-150 ${
+                    isAuthHeroPage
+                      ? isActive
+                        ? 'bg-white text-abyss font-extrabold shadow-md'
+                        : 'text-white/80 hover:text-white hover:bg-white/10'
+                      : isActive
+                      ? 'bg-[#E5EAF0] text-[#0F172A] shadow-neu-extruded-sm border border-slate-300 font-extrabold'
+                      : 'text-slate-600 hover:text-[#0F172A]'
                   }`}
                 >
                   {item.label}
@@ -99,82 +122,86 @@ export const Navbar = () => {
           <div className="hidden sm:flex items-center gap-3">
             {isAuthenticated ? (
               <div className="flex items-center gap-3">
-                {/* User Pill Dropdown */}
+                {/* User Tactile Pill Dropdown */}
                 <div className="relative" ref={dropdownRef}>
                   <button
                     onClick={() => setDropdownOpen(!dropdownOpen)}
-                    className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-full glass-pill-control text-white transition-all text-left shadow-sm"
+                    className={`flex items-center gap-2.5 px-3.5 py-1.5 rounded-2xl transition-all text-left ${
+                      isAuthHeroPage
+                        ? 'bg-white/15 text-white border border-white/30 backdrop-blur-md hover:bg-white/25'
+                        : 'bg-[#DFE4EA] text-[#0F172A] border border-slate-300 hover:border-amber-primary/40 shadow-neu-inset-sm'
+                    }`}
                   >
-                    <div className="w-6 h-6 rounded-full bg-white/20 text-white font-bold text-[11px] flex items-center justify-center border border-white/30">
+                    <div className="w-6 h-6 rounded-xl bg-amber-primary/20 text-amber-primary font-mono font-bold text-[11px] flex items-center justify-center border border-amber-primary/40">
                       {user?.photo_url ? (
                         <img
                           src={user.photo_url}
                           alt={user.name}
-                          className="w-full h-full object-cover rounded-full"
+                          className="w-full h-full object-cover rounded-xl"
                         />
                       ) : (
                         getInitials(user?.name)
                       )}
                     </div>
-                    <span className="text-xs font-medium text-white/95 truncate max-w-[110px]">
-                      {user?.name?.split(' ')[0] || 'User'}
+                    <span className={`text-xs font-display font-bold truncate max-w-[110px] ${isAuthHeroPage ? 'text-white' : 'text-[#0F172A]'}`}>
+                      {user?.name?.split(' ')[0] || 'Explorer'}
                     </span>
-                    <ChevronDown className={`w-3.5 h-3.5 text-white/60 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
+                    <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isAuthHeroPage ? 'text-white/80' : 'text-slate-500'} ${dropdownOpen ? 'rotate-180 text-amber-primary' : ''}`} />
                   </button>
 
                   {/* Dropdown Menu */}
                   {dropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-56 glass-card-elevated text-white p-2 z-50 animate-scale-up">
-                      <div className="px-3 py-2 border-b border-white/10">
+                    <div className="absolute right-0 mt-2 w-60 neu-modal text-[#0F172A] p-3 z-50 animate-scale-up border border-slate-300">
+                      <div className="px-3 py-2.5 border-b border-slate-300 mb-2">
                         <div className="flex items-center justify-between">
-                          <p className="text-xs font-semibold text-white truncate">{user?.name}</p>
+                          <p className="text-xs font-display font-extrabold text-[#0F172A] truncate">{user?.name}</p>
                           {user?.role === 'admin' && (
-                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/30 text-amber-200 border border-amber-500/40">
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/20 text-amber-700 border border-amber-500/30">
                               Admin
                             </span>
                           )}
                         </div>
-                        <p className="text-[11px] text-white/60 truncate">{user?.email}</p>
+                        <p className="text-[11px] font-mono text-slate-500 truncate mt-0.5">{user?.email}</p>
                       </div>
 
-                      <div className="py-1">
+                      <div className="space-y-1">
                         <Link
                           to="/profile"
                           onClick={() => setDropdownOpen(false)}
-                          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-white/90 hover:bg-white/15 transition-colors"
+                          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:text-[#0F172A] hover:bg-white/60 transition-colors"
                         >
-                          <User className="w-3.5 h-3.5 text-white/70" />
-                          Profile & Settings
+                          <User className="w-3.5 h-3.5 text-amber-primary" />
+                          <span>Profile & Preferences</span>
                         </Link>
 
                         <Link
                           to="/trips/compare"
                           onClick={() => setDropdownOpen(false)}
-                          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-white/90 hover:bg-white/15 transition-colors"
+                          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:text-[#0F172A] hover:bg-white/60 transition-colors"
                         >
-                          <Scale className="w-3.5 h-3.5 text-white/70" />
-                          Compare Drafts
+                          <Scale className="w-3.5 h-3.5 text-teal-accent" />
+                          <span>Compare Drafts</span>
                         </Link>
 
                         {user?.role === 'admin' && (
                           <Link
                             to="/admin"
                             onClick={() => setDropdownOpen(false)}
-                            className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-amber-300 hover:bg-white/15 transition-colors"
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-amber-700 hover:bg-white/60 transition-colors"
                           >
-                            <Shield className="w-3.5 h-3.5 text-amber-300" />
-                            Admin Console
+                            <Shield className="w-3.5 h-3.5" />
+                            <span>Admin Console</span>
                           </Link>
                         )}
                       </div>
 
-                      <div className="pt-1 border-t border-white/10">
+                      <div className="pt-2 mt-2 border-t border-slate-300">
                         <button
                           onClick={handleLogout}
-                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-rose-300 hover:bg-rose-500/20 transition-colors text-left"
+                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors text-left"
                         >
-                          <LogOut className="w-3.5 h-3.5 text-rose-300" />
-                          Sign Out
+                          <LogOut className="w-3.5 h-3.5 text-rose-500" />
+                          <span>Sign Out</span>
                         </button>
                       </div>
                     </div>
@@ -185,7 +212,11 @@ export const Navbar = () => {
               <div className="flex items-center gap-2">
                 <Link
                   to="/login"
-                  className="px-5 py-2 rounded-full bg-white text-abyss font-bold text-xs tracking-tight hover:bg-foam transition-all shadow-md hover:shadow-lg active:scale-95 border border-white/20"
+                  className={`px-5 py-2 rounded-2xl text-xs font-display font-extrabold transition-transform active:scale-95 ${
+                    isAuthHeroPage
+                      ? 'bg-white text-abyss hover:bg-white/90 shadow-md font-bold'
+                      : 'neu-btn-primary text-white'
+                  }`}
                 >
                   Sign In
                 </Link>
@@ -197,7 +228,11 @@ export const Navbar = () => {
           <div className="flex sm:hidden items-center">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+              className={`p-2 rounded-xl transition-colors ${
+                isAuthHeroPage
+                  ? 'bg-white/15 text-white border border-white/30'
+                  : 'bg-[#DFE4EA] text-slate-700 hover:text-[#0F172A] border border-slate-300'
+              }`}
               aria-label="Toggle menu"
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -207,33 +242,37 @@ export const Navbar = () => {
 
         {/* Mobile Dropdown Panel */}
         {mobileMenuOpen && (
-          <div className="sm:hidden pt-4 pb-2 border-t border-white/10 mt-3 space-y-2 animate-fade-in">
+          <div className="sm:hidden pt-4 pb-2 border-t border-white/20 mt-3 space-y-2 animate-fade-in">
             {currentNavLinks.map((item) => (
               <Link
                 key={item.label}
                 to={item.path}
                 onClick={() => setMobileMenuOpen(false)}
-                className="block px-3 py-2 rounded-xl text-sm font-medium text-white/90 hover:bg-white/10"
+                className={`block px-3 py-2 rounded-xl text-xs font-display font-bold ${
+                  isAuthHeroPage ? 'text-white/90 hover:bg-white/10' : 'text-slate-700 hover:bg-white/60'
+                }`}
               >
                 {item.label}
               </Link>
             ))}
-            <div className="pt-2 border-t border-white/10">
+            <div className="pt-2 border-t border-white/20">
               {isAuthenticated ? (
                 <>
                   <Link
                     to="/profile"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="block px-3 py-2 rounded-xl text-sm font-medium text-white/90 hover:bg-white/10"
+                    className={`block px-3 py-2 rounded-xl text-xs font-display font-bold ${
+                      isAuthHeroPage ? 'text-white/90 hover:bg-white/10' : 'text-slate-700 hover:bg-white/60'
+                    }`}
                   >
-                    Profile & Settings
+                    Profile & Preferences
                   </Link>
                   <button
                     onClick={() => {
                       setMobileMenuOpen(false);
                       handleLogout();
                     }}
-                    className="w-full text-left px-3 py-2 rounded-xl text-sm font-medium text-rose-300 hover:bg-rose-500/20"
+                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-rose-500 hover:bg-rose-500/10"
                   >
                     Sign Out
                   </button>
@@ -242,7 +281,7 @@ export const Navbar = () => {
                 <Link
                   to="/login"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="block text-center px-4 py-2.5 rounded-full bg-white text-abyss font-bold text-sm shadow-md"
+                  className="block text-center px-4 py-2.5 rounded-2xl bg-white text-abyss text-xs font-display font-extrabold shadow-md"
                 >
                   Sign In
                 </Link>

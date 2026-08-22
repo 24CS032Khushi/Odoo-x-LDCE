@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, MapPin, Heart, Plus, Sparkles, Star, DollarSign, Clock, Layers } from 'lucide-react';
+import { Search, MapPin, Heart, Plus, Sparkles, Star, DollarSign, Clock, Layers, Flame, ArrowRight, RotateCcw, Loader2, Globe } from 'lucide-react';
 import { PhotoCard } from '../../components/shared/Card';
 import Button from '../../components/shared/Button';
 import Modal from '../../components/shared/Modal';
@@ -7,31 +7,30 @@ import CreateTripModal from '../../components/trips/CreateTripModal';
 import { useToast } from '../../context/ToastContext';
 import api from '../../services/api';
 
-const REGIONS = ['all', 'Asia', 'Europe', 'Middle East', 'Americas'];
+const REGIONS = ['all', 'India 🇮🇳', 'Asia', 'Europe', 'Middle East', 'Americas'];
 
 export const DiscoverPage = () => {
   const { success, info, error: toastError } = useToast();
 
-  const [cities, setCities] = useState([]);
+  const [allCities, setAllCities] = useState([]);
+  const [displayedCities, setDisplayedCities] = useState([]);
   const [savedCityIds, setSavedCityIds] = useState(new Set());
   const [myTrips, setMyTrips] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRegion, setSelectedRegion] = useState('all');
   const [isLoading, setIsLoading] = useState(true);
-  const [isSearching, setIsSearching] = useState(false);
+  const [isSearchingLive, setIsSearchingLive] = useState(false);
 
-  // Add to trip modal state
   const [addToTripModalOpen, setAddToTripModalOpen] = useState(false);
   const [targetCity, setTargetCity] = useState(null);
   const [selectedTripId, setSelectedTripId] = useState('');
   const [createTripModalOpen, setCreateTripModalOpen] = useState(false);
   const [isAddingStop, setIsAddingStop] = useState(false);
 
-  // City details / activities preview modal state
   const [viewActivitiesModal, setViewActivitiesModal] = useState(false);
   const [activeCityDetails, setActiveCityDetails] = useState(null);
 
-  const debounceTimerRef = useRef(null);
+  const searchTimeoutRef = useRef(null);
 
   useEffect(() => {
     fetchInitialData();
@@ -41,14 +40,21 @@ export const DiscoverPage = () => {
     setIsLoading(true);
     try {
       const [citiesRes, savedRes, tripsRes] = await Promise.all([
-        api.get('/cities'),
+        api.get('/cities/recommendations').catch(() => api.get('/cities')),
         api.get('/saved-destinations').catch(() => ({ data: { saved: [] } })),
         api.get('/trips').catch(() => ({ data: { trips: [] } }))
       ]);
 
-      if (citiesRes.success) {
-        setCities(citiesRes.data.cities);
+      let loaded = [];
+      if (citiesRes.data?.recommendations) {
+        loaded = citiesRes.data.recommendations;
+      } else if (citiesRes.data?.cities) {
+        loaded = citiesRes.data.cities;
       }
+
+      setAllCities(loaded);
+      setDisplayedCities(loaded);
+
       if (savedRes.data?.saved) {
         setSavedCityIds(new Set(savedRes.data.saved.map((c) => c.id)));
       }
@@ -56,52 +62,64 @@ export const DiscoverPage = () => {
         setMyTrips(tripsRes.data.trips);
       }
     } catch (err) {
-      toastError('Failed to load destination data');
+      toastError('Failed to load destination catalog');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Trigger backend hybrid search when search query or region changes
-  const performSearch = async (query, region) => {
-    setIsSearching(true);
-    try {
-      const params = new URLSearchParams();
-      if (query && query.trim()) params.set('search', query.trim());
-      if (region && region !== 'all') params.set('region', region);
+  // Live API Search Debounce
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
 
-      const res = await api.get(`/cities?${params.toString()}`);
-      if (res.success) {
-        setCities(res.data.cities);
+    const trimmed = searchQuery.trim();
+    if (!trimmed) {
+      setIsSearchingLive(false);
+      applyRegionFilter(allCities, selectedRegion);
+      return;
+    }
+
+    setIsSearchingLive(true);
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        const res = await api.get(`/cities?search=${encodeURIComponent(trimmed)}`);
+        if (res.success && res.data?.cities) {
+          const results = res.data.cities;
+          applyRegionFilter(results, selectedRegion);
+        }
+      } catch (err) {
+        console.error('Live search error:', err);
+        const localMatches = allCities.filter((c) =>
+          c.name.toLowerCase().includes(trimmed.toLowerCase()) ||
+          c.country.toLowerCase().includes(trimmed.toLowerCase())
+        );
+        applyRegionFilter(localMatches, selectedRegion);
+      } finally {
+        setIsSearchingLive(false);
       }
-    } catch (err) {
-      // Fallback silently without breaking UI
-      console.warn('Live search fallback:', err.message);
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  const handleSearchChange = (e) => {
-    const val = e.target.value;
-    setSearchQuery(val);
-
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-
-    debounceTimerRef.current = setTimeout(() => {
-      performSearch(val, selectedRegion);
     }, 350);
-  };
 
-  const handleRegionSelect = (region) => {
-    setSelectedRegion(region);
-    performSearch(searchQuery, region);
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [searchQuery, selectedRegion, allCities]);
+
+  const applyRegionFilter = (dataset, region) => {
+    let filtered = dataset;
+    if (region === 'India 🇮🇳') {
+      filtered = dataset.filter((c) => c.country?.toLowerCase() === 'india');
+    } else if (region !== 'all') {
+      filtered = dataset.filter((c) => c.region?.toLowerCase() === region.toLowerCase());
+    }
+    setDisplayedCities(filtered);
   };
 
   const handleToggleSave = async (city, e) => {
-    e.stopPropagation();
+    e?.stopPropagation?.();
     const isSaved = savedCityIds.has(city.id);
 
     try {
@@ -124,7 +142,7 @@ export const DiscoverPage = () => {
   };
 
   const handleOpenAddToTrip = (city, e) => {
-    e.stopPropagation();
+    e?.stopPropagation?.();
     setTargetCity(city);
     if (myTrips.length === 0) {
       setCreateTripModalOpen(true);
@@ -142,242 +160,324 @@ export const DiscoverPage = () => {
       await api.post(`/trips/${selectedTripId}/stops`, {
         city_id: targetCity.id
       });
-      success(`Added ${targetCity.name} as a stop to your trip!`);
+      success(`Added ${targetCity.name} to your itinerary!`);
       setAddToTripModalOpen(false);
+      setTargetCity(null);
     } catch (err) {
-      toastError(err.message || 'Failed to add stop to trip');
+      toastError(err.message || 'Failed to add stop');
     } finally {
       setIsAddingStop(false);
     }
   };
 
-  const handleViewCityActivities = async (city) => {
-    try {
-      const res = await api.get(`/cities/${city.id}`);
-      if (res.success) {
-        setActiveCityDetails(res.data.city);
-        setViewActivitiesModal(true);
-      }
-    } catch (err) {
-      toastError('Failed to load city activities');
-    }
+  const handleOpenActivities = (city, e) => {
+    e?.stopPropagation?.();
+    setActiveCityDetails(city);
+    setViewActivitiesModal(true);
+  };
+
+  const handleResetFilters = () => {
+    setSearchQuery('');
+    setSelectedRegion('all');
+    setDisplayedCities(allCities);
+    info('Filters reset — showing all destinations');
   };
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Header & Search Bar */}
-      <div className="space-y-4">
-        <div>
-          <h1 className="text-3xl font-bold text-abyss font-display tracking-tight">
-            Discover Global Destinations
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Explore world-class cities, curated local activities, and cost ratings to build your dream itinerary.
-          </p>
-        </div>
-
-        {/* Search Input & Region Filter Chips */}
-        <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between">
-          <div className="relative max-w-md w-full">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-            <input
-              type="text"
-              placeholder="Search by city or country (e.g. Kyoto, Mumbai, Paris)..."
-              value={searchQuery}
-              onChange={handleSearchChange}
-              className="w-full text-sm bg-white text-abyss border border-slate-300 rounded-full pl-10 pr-4 py-2.5 outline-none focus:border-ocean-teal focus:ring-2 focus:ring-ocean-teal/20 shadow-sm"
-            />
-            {isSearching && (
-              <span className="absolute right-3.5 top-3 text-[10px] font-semibold text-ocean-teal animate-pulse">
-                Searching...
-              </span>
-            )}
+    <div className="space-y-10 animate-fade-in text-[#0F172A] font-sans">
+      {/* Header & Search Bar in High-Contrast Tactile Card */}
+      <div className="neu-card p-6 sm:p-8 space-y-6 shadow-neu-extruded">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold text-teal-700 bg-teal-50 border border-teal-200 mb-1">
+              <Globe className="w-3.5 h-3.5 text-teal-accent" />
+              <span>Live Global & India Destination Discovery</span>
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-display font-black text-[#0F172A] tracking-tight flex items-center gap-1.5">
+              <span>Discover Destinations</span>
+              <span className="text-amber-primary">.</span>
+            </h1>
+            <p className="text-sm text-slate-600 mt-1 font-sans">
+              Search any city worldwide (e.g. Ahmedabad, Surat, Jaipur, London, Tokyo) to discover attractions, real INR costs, and match ratings.
+            </p>
           </div>
 
-          {/* Filter Chips */}
+          {(searchQuery || selectedRegion !== 'all') && (
+            <Button
+              variant="outline"
+              size="sm"
+              icon={RotateCcw}
+              onClick={handleResetFilters}
+            >
+              Reset Filters
+            </Button>
+          )}
+        </div>
+
+        {/* Live Search Input & Region Filter Chips */}
+        <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between">
+          <div className="relative max-w-md w-full">
+            {isSearchingLive ? (
+              <Loader2 className="w-4 h-4 text-amber-primary animate-spin absolute left-4 top-3.5" />
+            ) : (
+              <Search className="w-4 h-4 text-slate-500 absolute left-4 top-3.5" />
+            )}
+            <input
+              type="text"
+              placeholder="Search any city or place (e.g. Ahmedabad, Surat, Varanasi, Goa, Paris)..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full text-sm bg-[#CBD5E1] text-[#0F172A] rounded-2xl neu-input pl-11 pr-4 py-3 outline-none focus:border-amber-primary border border-slate-300 shadow-neu-inset-sm placeholder:text-slate-500 font-sans"
+            />
+          </div>
+
+          {/* Region Filter Chips */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
             {REGIONS.map((region) => (
               <button
                 key={region}
                 type="button"
-                onClick={() => handleRegionSelect(region)}
-                className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+                onClick={() => setSelectedRegion(region)}
+                className={`px-4 py-2 rounded-xl text-xs font-display font-bold whitespace-nowrap transition-all ${
                   selectedRegion === region
-                    ? 'bg-abyss text-white shadow-sm'
-                    : 'bg-white text-slate-600 hover:bg-slate-200/70 border border-slate-200'
+                    ? 'neu-btn-primary text-white shadow-neu-amber'
+                    : 'bg-[#E2E8F0] text-slate-700 hover:text-[#0F172A] border border-black/10 shadow-neu-extruded-sm'
                 }`}
               >
-                {region === 'all' ? 'All Regions' : region}
+                {region === 'all' ? `All Places (${displayedCities.length})` : region}
               </button>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Cities Grid */}
-      {cities.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {cities.map((city) => {
+      {/* Catalog Grid */}
+      {displayedCities.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-7">
+          {displayedCities.map((city) => {
             const isSaved = savedCityIds.has(city.id);
-            const isPendingCost = city.popularity_score === 0 || city.cost_index === null || parseFloat(city.cost_index) === 0;
-
-            const badgeText = isPendingCost ? 'Cost data pending' : `${parseFloat(city.cost_index).toFixed(1)}x Cost Index`;
-            const badgeColor = isPendingCost ? 'bg-slate-800/80 text-amber-300' : 'bg-ocean-deep/80 text-white';
+            const isIndia = city.country?.toLowerCase() === 'india';
 
             return (
-              <div key={city.id} className="relative group cursor-pointer" onClick={() => handleViewCityActivities(city)}>
-                {/* Heart Save Button Overlay */}
-                <button
-                  type="button"
-                  onClick={(e) => handleToggleSave(city, e)}
-                  className={`absolute top-4 right-4 z-20 w-9 h-9 rounded-full flex items-center justify-center backdrop-blur-md transition-all shadow-md ${
-                    isSaved
-                      ? 'bg-rose-500 text-white'
-                      : 'bg-black/30 text-white hover:bg-black/60 border border-white/20'
-                  }`}
-                  aria-label={isSaved ? 'Unsave destination' : 'Save destination'}
-                >
-                  <Heart className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
-                </button>
+              <PhotoCard
+                key={city.id}
+                imageUrl={city.image_url}
+                title={city.name}
+                subtitle={`${city.country} • ${city.region || 'Global'}`}
+                badge={isIndia ? '🇮🇳 India' : `★ ${city.popularity_score}`}
+                onClick={(e) => handleOpenActivities(city, e)}
+              >
+                <div className="space-y-4">
+                  {/* Meta Specs */}
+                  <div className="grid grid-cols-2 gap-2 p-3 rounded-2xl bg-[#DFE4EA] border border-slate-300 shadow-neu-inset-sm text-xs">
+                    <div>
+                      <span className="text-[10px] font-mono uppercase text-slate-500 block">Est. Cost/Day</span>
+                      <span className="font-mono font-bold text-amber-primary">
+                        ₹{Math.round(city.cost_index * 2500).toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-mono uppercase text-slate-500 block">Popularity</span>
+                      <span className="font-bold text-[#0F172A] flex items-center gap-1 font-sans">
+                        <Star className="w-3 h-3 text-amber-primary fill-amber-primary" />
+                        {city.popularity_score}/100
+                      </span>
+                    </div>
+                  </div>
 
-                <PhotoCard
-                  imageUrl={city.image_url || 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80'}
-                  title={city.name}
-                  subtitle={`${city.country} • ${city.region || 'Global'}`}
-                  badge={badgeText}
-                  badgeColor={badgeColor}
-                  aspectRatio="aspect-[4/3]"
-                >
-                  <div className="flex items-center justify-between pt-2 border-t border-white/10 text-xs">
-                    <span className="flex items-center gap-1 text-amber-300 font-bold">
-                      <Star className="w-3.5 h-3.5 fill-amber-300" />
-                      {parseFloat(city.popularity_score || 5.0).toFixed(1)} Popularity
-                    </span>
+                  {/* Actions Row */}
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-300/80 gap-2">
                     <button
                       type="button"
-                      onClick={(e) => handleOpenAddToTrip(city, e)}
-                      className="px-3 py-1 rounded-full bg-white text-abyss hover:bg-foam font-bold text-xs shadow-sm transition-transform active:scale-95 flex items-center gap-1"
+                      onClick={(e) => handleToggleSave(city, e)}
+                      className={`p-2 rounded-xl transition-all ${
+                        isSaved
+                          ? 'text-rose-500 bg-rose-50 border border-rose-200'
+                          : 'text-slate-500 hover:text-[#0F172A] hover:bg-[#CBD5E1]'
+                      }`}
+                      title={isSaved ? 'Remove from Saved' : 'Save to Favorites'}
                     >
-                      <Plus className="w-3 h-3" />
-                      Add to Trip
+                      <Heart className={`w-4 h-4 ${isSaved ? 'fill-rose-500' : ''}`} />
                     </button>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={(e) => handleOpenActivities(city, e)}
+                        className="px-3 py-1.5 rounded-xl text-xs font-display font-bold text-slate-700 bg-[#E2E8F0] hover:text-[#0F172A] border border-slate-300 shadow-neu-extruded-sm transition-all"
+                      >
+                        Activities
+                      </button>
+
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        icon={Plus}
+                        onClick={(e) => handleOpenAddToTrip(city, e)}
+                      >
+                        Add to Trip
+                      </Button>
+                    </div>
                   </div>
-                </PhotoCard>
-              </div>
+                </div>
+              </PhotoCard>
             );
           })}
         </div>
       ) : (
-        /* Empty State on Foam Surface */
-        <div className="bg-white border border-slate-200 rounded-[20px] p-16 text-center max-w-md mx-auto space-y-3 shadow-sm">
-          <div className="w-16 h-16 rounded-full bg-ocean-teal/10 text-ocean-teal flex items-center justify-center mx-auto">
-            <Search className="w-8 h-8" />
+        <div className="neu-card p-14 text-center max-w-md mx-auto space-y-4 shadow-neu-extruded">
+          <div className="w-14 h-14 rounded-2xl bg-[#DFE4EA] border border-slate-300 text-amber-primary flex items-center justify-center mx-auto shadow-neu-inset">
+            <Search className="w-7 h-7" />
           </div>
-          <h3 className="font-display font-bold text-lg text-abyss">No destinations found</h3>
+          <h3 className="font-display font-bold text-xl text-[#0F172A]">No destinations found</h3>
           <p className="text-xs text-slate-500">
-            We couldn't find any cities matching "{searchQuery}". Try searching for another city name or country.
+            No matching destinations found for "{searchQuery}". Try searching for any major city or reset your filters.
           </p>
+          <Button
+            variant="outline"
+            size="md"
+            icon={RotateCcw}
+            onClick={handleResetFilters}
+          >
+            Reset All Filters
+          </Button>
         </div>
       )}
 
-      {/* Add To Trip Stop Selector Modal */}
+      {/* Add To Trip Stop Modal */}
       <Modal
         isOpen={addToTripModalOpen}
         onClose={() => setAddToTripModalOpen(false)}
-        title={`Add ${targetCity?.name} to Trip`}
-        description="Choose which of your planned itineraries to include this destination in."
-        maxWidth="max-w-md"
+        title={`Add ${targetCity?.name} to Itinerary`}
       >
-        <div className="space-y-4 pt-1">
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Select Itinerary</label>
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600 font-sans">
+            Select which travel itinerary you would like to append <strong className="text-[#0F172A]">{targetCity?.name}, {targetCity?.country}</strong> to:
+          </p>
+
+          <div className="space-y-2">
+            <label className="text-xs font-mono uppercase text-slate-500 font-bold block">
+              Destination Itinerary
+            </label>
             <select
               value={selectedTripId}
               onChange={(e) => setSelectedTripId(e.target.value)}
-              className="w-full text-sm bg-white text-abyss border border-slate-300 rounded-xl px-3.5 py-2.5 outline-none focus:border-ocean-teal focus:ring-2 focus:ring-ocean-teal/20"
+              className="w-full px-4 py-3 rounded-2xl bg-[#CBD5E1] text-[#0F172A] neu-input border border-slate-300 shadow-neu-inset-sm outline-none focus:border-amber-primary text-sm font-sans"
             >
-              {myTrips.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name} ({t.trip_stops?.length || 0} stops)
+              {myTrips.map((trip) => (
+                <option key={trip.id} value={trip.id}>
+                  {trip.name} ({trip.trip_stops?.length || 0} stops)
                 </option>
               ))}
             </select>
           </div>
 
-          <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
-            <Button variant="ghost" size="md" onClick={() => setAddToTripModalOpen(false)}>
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-300">
+            <Button
+              variant="outline"
+              size="md"
+              onClick={() => setAddToTripModalOpen(false)}
+              disabled={isAddingStop}
+            >
               Cancel
-            </Button>
-            <Button variant="primary" size="md" onClick={handleConfirmAddToTrip} isLoading={isAddingStop}>
-              Confirm Destination
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* City Activities Detail Modal */}
-      <Modal
-        isOpen={viewActivitiesModal}
-        onClose={() => setViewActivitiesModal(false)}
-        title={activeCityDetails?.name || 'City Details'}
-        description={`${activeCityDetails?.country} • ${activeCityDetails?.region || 'Global'}`}
-        maxWidth="max-w-2xl"
-      >
-        <div className="space-y-4 pt-1">
-          {activeCityDetails?.activities && activeCityDetails.activities.length > 0 ? (
-            <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
-              {activeCityDetails.activities.map((act) => (
-                <div
-                  key={act.id}
-                  className="flex items-start gap-3.5 p-3 rounded-xl bg-slate-50 border border-slate-200/80 hover:border-slate-300 transition-colors"
-                >
-                  <img
-                    src={act.image_url || activeCityDetails.image_url}
-                    alt={act.name}
-                    className="w-16 h-16 rounded-xl object-cover flex-shrink-0"
-                  />
-                  <div className="min-w-0 flex-1 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <h5 className="font-bold text-sm text-abyss font-display">{act.name}</h5>
-                      <span className="font-bold text-xs text-ocean-teal">
-                        {parseFloat(act.cost) === 0 ? 'Free' : `₹${parseFloat(act.cost).toLocaleString('en-IN')}`}
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-500 line-clamp-2">{act.description}</p>
-                    <div className="flex items-center gap-3 text-[11px] text-slate-400 pt-0.5">
-                      <span className="capitalize">🏷️ {act.category}</span>
-                      <span>⏱️ {act.duration_minutes} mins</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="p-8 text-center text-slate-400 text-xs">
-              No curated activities listed for this destination yet.
-            </div>
-          )}
-
-          <div className="pt-3 flex items-center justify-between border-t border-slate-100">
-            <Button variant="ghost" size="md" onClick={() => setViewActivitiesModal(false)}>
-              Close
             </Button>
             <Button
               variant="primary"
               size="md"
               icon={Plus}
-              onClick={() => {
-                setViewActivitiesModal(false);
-                handleOpenAddToTrip(activeCityDetails, { stopPropagation: () => {} });
-              }}
+              onClick={handleConfirmAddToTrip}
+              isLoading={isAddingStop}
             >
-              Add {activeCityDetails?.name} to Trip
+              Confirm & Add Stop
             </Button>
           </div>
         </div>
       </Modal>
 
-      {/* Plan New Trip Modal if no trips exist */}
+      {/* City Activities Overview Modal */}
+      <Modal
+        isOpen={viewActivitiesModal}
+        onClose={() => {
+          setViewActivitiesModal(false);
+          setActiveCityDetails(null);
+        }}
+        title={`Explore ${activeCityDetails?.name || 'Destination'}`}
+        size="lg"
+      >
+        {activeCityDetails && (
+          <div className="space-y-6">
+            <div className="relative rounded-2xl overflow-hidden aspect-[16/8]">
+              <img
+                src={activeCityDetails.image_url}
+                alt={activeCityDetails.name}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-5">
+                <div className="text-white space-y-1">
+                  <span className="text-xs font-mono font-bold text-amber-primary uppercase tracking-wider">
+                    {activeCityDetails.country} • {activeCityDetails.region || 'Global'}
+                  </span>
+                  <h3 className="text-2xl font-display font-black">{activeCityDetails.name}</h3>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-500">
+                Curated Highlights & Activities ({activeCityDetails.activities?.length || 0})
+              </h4>
+
+              {activeCityDetails.activities && activeCityDetails.activities.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-64 overflow-y-auto pr-1">
+                  {activeCityDetails.activities.map((act) => (
+                    <div
+                      key={act.id}
+                      className="p-3.5 rounded-2xl bg-[#DFE4EA] border border-slate-300 shadow-neu-inset-sm space-y-1.5"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <h5 className="font-display font-bold text-sm text-[#0F172A]">{act.name}</h5>
+                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 shrink-0">
+                          {act.category}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-600 line-clamp-2 font-sans">{act.description}</p>
+                      <div className="flex items-center justify-between text-[11px] pt-1 text-slate-500 font-mono">
+                        <span>⏱️ {act.duration_mins}m</span>
+                        <span className="font-bold text-amber-primary">₹{parseFloat(act.cost || 0).toLocaleString('en-IN')}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-slate-500 italic">No activity highlights configured yet.</p>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between pt-4 border-t border-slate-300">
+              <Button
+                variant="outline"
+                size="md"
+                onClick={() => setViewActivitiesModal(false)}
+              >
+                Close
+              </Button>
+              <Button
+                variant="primary"
+                size="md"
+                icon={Plus}
+                onClick={() => {
+                  setViewActivitiesModal(false);
+                  handleOpenAddToTrip(activeCityDetails);
+                }}
+              >
+                Add Destination to Trip
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Create Trip Modal (if user has 0 trips and wants to add) */}
       <CreateTripModal
         isOpen={createTripModalOpen}
         onClose={() => setCreateTripModalOpen(false)}
@@ -385,7 +485,7 @@ export const DiscoverPage = () => {
           setMyTrips((prev) => [newTrip, ...prev]);
           if (targetCity) {
             api.post(`/trips/${newTrip.id}/stops`, { city_id: targetCity.id })
-              .then(() => success(`Trip created and ${targetCity.name} added as your first stop!`));
+              .then(() => success(`Added ${targetCity.name} to "${newTrip.name}"!`));
           }
         }}
       />

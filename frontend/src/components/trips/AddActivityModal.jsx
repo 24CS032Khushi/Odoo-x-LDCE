@@ -81,7 +81,7 @@ export const AddActivityModal = ({ isOpen, onClose, tripId, stop, onActivityAdde
       isOpen={isOpen}
       onClose={onClose}
       title={`Add Activity in ${stop?.city?.name || 'Destination'}`}
-      description="Choose curated attractions and schedule their time"
+      description="Choose curated attractions and schedule their time slot"
       maxWidth="max-w-xl"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -92,10 +92,10 @@ export const AddActivityModal = ({ isOpen, onClose, tripId, stop, onActivityAdde
               key={cat}
               type="button"
               onClick={() => setCategoryFilter(cat)}
-              className={`px-3 py-1 rounded-full text-xs font-semibold capitalize transition-all ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-display font-bold capitalize transition-all ${
                 categoryFilter === cat
-                  ? 'bg-ocean-teal text-white shadow-sm'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  ? 'neu-btn-primary text-white shadow-neu-amber'
+                  : 'bg-[#E5EAF0] text-slate-600 hover:text-[#0F172A] border border-slate-300 shadow-neu-extruded-sm'
               }`}
             >
               {cat}
@@ -105,8 +105,10 @@ export const AddActivityModal = ({ isOpen, onClose, tripId, stop, onActivityAdde
 
         {/* Activity Selection List */}
         <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-slate-700">Available Activities</label>
-          <div className="max-h-52 overflow-y-auto space-y-2 pr-1 border border-slate-200 rounded-xl p-2 bg-slate-50/50">
+          <label className="text-[10px] font-mono font-extrabold uppercase tracking-widest text-slate-500">
+            Available Attractions
+          </label>
+          <div className="max-h-52 overflow-y-auto space-y-2 pr-1 border border-slate-200 rounded-2xl p-2.5 bg-[#DFE4EA] shadow-neu-inset-sm">
             {filteredActivities.length > 0 ? (
               filteredActivities.map((act) => {
                 const isSelected = selectedActivity?.id === act.id;
@@ -115,34 +117,34 @@ export const AddActivityModal = ({ isOpen, onClose, tripId, stop, onActivityAdde
                     key={act.id}
                     type="button"
                     onClick={() => handleSelect(act)}
-                    className={`w-full flex items-start gap-3 p-3 rounded-xl text-left transition-all ${
+                    className={`w-full flex items-start gap-3 p-3 rounded-2xl text-left transition-all ${
                       isSelected
-                        ? 'bg-ocean-teal text-white shadow-sm'
-                        : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200/60'
+                        ? 'neu-btn-primary text-white shadow-neu-amber'
+                        : 'bg-[#E5EAF0] text-[#0F172A] hover:text-[#0F172A] border border-slate-300 shadow-neu-extruded-sm'
                     }`}
                   >
                     <img
                       src={act.image_url}
                       alt={act.name}
-                      className="w-14 h-14 rounded-lg object-cover flex-shrink-0"
+                      className="w-14 h-14 rounded-xl object-cover flex-shrink-0 border border-white shadow-xs"
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
-                        <p className={`font-semibold text-sm leading-tight truncate ${isSelected ? 'text-white' : 'text-slate-900'}`}>
+                        <p className={`font-display font-extrabold text-sm leading-tight truncate ${isSelected ? 'text-white' : 'text-[#0F172A]'}`}>
                           {act.name}
                         </p>
-                        <span className={`text-xs font-bold ${isSelected ? 'text-white' : 'text-ocean-teal'}`}>
+                        <span className={`text-xs font-mono font-bold ${isSelected ? 'text-white font-black' : 'text-amber-primary'}`}>
                           {parseFloat(act.cost) === 0 ? 'Free' : `₹${act.cost}`}
                         </span>
                       </div>
-                      <p className={`text-xs mt-0.5 line-clamp-1 ${isSelected ? 'text-white/80' : 'text-slate-500'}`}>
+                      <p className={`text-xs mt-0.5 line-clamp-1 ${isSelected ? 'text-white/90 font-medium' : 'text-slate-600'}`}>
                         {act.description}
                       </p>
-                      <div className="flex items-center gap-3 mt-1 text-[11px]">
-                        <span className={`capitalize font-medium ${isSelected ? 'text-white/90' : 'text-slate-600'}`}>
+                      <div className="flex items-center gap-3 mt-1 text-[11px] font-mono">
+                        <span className={`capitalize font-bold ${isSelected ? 'text-white' : 'text-teal-accent'}`}>
                           🏷️ {act.category}
                         </span>
-                        <span className={isSelected ? 'text-white/70' : 'text-slate-400'}>
+                        <span className={isSelected ? 'text-white/80' : 'text-slate-500'}>
                           ⏱️ {act.duration_minutes} min
                         </span>
                       </div>
@@ -151,7 +153,7 @@ export const AddActivityModal = ({ isOpen, onClose, tripId, stop, onActivityAdde
                 );
               })
             ) : (
-              <p className="text-xs text-slate-400 p-4 text-center">No activities match this category filter.</p>
+              <p className="text-xs text-slate-500 p-4 text-center">No activities match this category filter.</p>
             )}
           </div>
         </div>
@@ -180,19 +182,21 @@ export const AddActivityModal = ({ isOpen, onClose, tripId, stop, onActivityAdde
           />
 
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-700">Cost in INR (₹)</label>
+            <label className="text-[10px] font-mono font-extrabold uppercase tracking-widest text-slate-500">
+              Cost in INR (₹)
+            </label>
             <input
               name="custom_cost"
               type="number"
               placeholder="Cost in ₹"
               value={customCost}
               onChange={(e) => setCustomCost(e.target.value)}
-              className="w-full text-sm bg-white text-abyss border border-slate-300 rounded-xl px-3.5 py-2.5 outline-none focus:border-ocean-teal focus:ring-2 focus:ring-ocean-teal/20 shadow-sm"
+              className="w-full text-sm bg-[#DFE4EA] text-[#0F172A] rounded-2xl neu-input px-4 py-3 outline-none focus:border-amber-primary border border-slate-300 font-mono shadow-neu-inset-sm placeholder:text-slate-400"
             />
           </div>
         </div>
 
-        <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
+        <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-200">
           <Button variant="ghost" size="md" onClick={onClose}>
             Cancel
           </Button>
