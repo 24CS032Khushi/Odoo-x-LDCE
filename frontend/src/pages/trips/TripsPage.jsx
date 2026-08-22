@@ -1,10 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Compass, Calendar, Plus, MapPin, Trash2, Edit2, ArrowRight, Eye, Layers } from 'lucide-react';
+import {
+  Compass,
+  Calendar,
+  Plus,
+  MapPin,
+  Trash2,
+  Edit2,
+  ArrowRight,
+  Eye,
+  Layers,
+  Wallet,
+  Share2,
+  Activity
+} from 'lucide-react';
 import { PhotoCard } from '../../components/shared/Card';
 import Button from '../../components/shared/Button';
 import Modal from '../../components/shared/Modal';
 import CreateTripModal from '../../components/trips/CreateTripModal';
+import ShareTripModal from '../../components/trips/ShareTripModal';
 import { useToast } from '../../context/ToastContext';
 import api from '../../services/api';
 
@@ -16,6 +30,7 @@ export const TripsPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editingTrip, setEditingTrip] = useState(null);
+  const [sharingTrip, setSharingTrip] = useState(null);
 
   // Delete modal state
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -58,7 +73,7 @@ export const TripsPage = () => {
   };
 
   const formatDateRange = (start, end) => {
-    if (!start && !end) return 'Dates not set';
+    if (!start && !end) return 'Flexible Schedule';
     if (start && !end) return `Starts ${new Date(start).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
     return `${new Date(start).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${new Date(end).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
   };
@@ -72,7 +87,7 @@ export const TripsPage = () => {
             My Travel Itineraries
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Manage, schedule, and review all your multi-destination journeys.
+            Manage, schedule, budget, and share all your multi-destination journeys.
           </p>
         </div>
         <Button
@@ -121,11 +136,22 @@ export const TripsPage = () => {
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
+                            setSharingTrip(trip);
+                          }}
+                          className="p-1.5 rounded-full bg-white/20 hover:bg-white/40 text-white transition-colors"
+                          title="Share Trip"
+                        >
+                          <Share2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setEditingTrip(trip);
                             setCreateModalOpen(true);
                           }}
                           className="p-1.5 rounded-full bg-white/20 hover:bg-white/40 text-white transition-colors"
-                          title="Edit Trip"
+                          title="Edit Trip Details"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
@@ -144,19 +170,25 @@ export const TripsPage = () => {
                       </div>
                     </div>
 
-                    {/* Navigation buttons to Builder and View */}
-                    <div className="pt-2 grid grid-cols-2 gap-2">
+                    {/* Navigation buttons to Builder, Itinerary, and Budget */}
+                    <div className="pt-2 grid grid-cols-3 gap-1.5 text-center">
                       <Link
                         to={`/trips/${trip.id}/builder`}
-                        className="w-full text-center py-1.5 rounded-full bg-white/20 hover:bg-white/30 text-white text-xs font-semibold backdrop-blur-xs transition-colors"
+                        className="py-1.5 rounded-full bg-white/20 hover:bg-white/30 text-white text-[11px] font-semibold backdrop-blur-xs transition-colors truncate"
                       >
                         Builder
                       </Link>
                       <Link
-                        to={`/trips/${trip.id}`}
-                        className="w-full text-center py-1.5 rounded-full bg-white text-abyss hover:bg-foam text-xs font-bold shadow-sm transition-colors"
+                        to={`/budget?trip_id=${trip.id}`}
+                        className="py-1.5 rounded-full bg-white/20 hover:bg-white/30 text-white text-[11px] font-semibold backdrop-blur-xs transition-colors truncate"
                       >
-                        View Itinerary
+                        Budget
+                      </Link>
+                      <Link
+                        to={`/trips/${trip.id}`}
+                        className="py-1.5 rounded-full bg-white text-abyss hover:bg-foam text-[11px] font-bold shadow-sm transition-colors truncate"
+                      >
+                        Schedule
                       </Link>
                     </div>
                   </div>
@@ -211,12 +243,30 @@ export const TripsPage = () => {
         }}
       />
 
+      {/* Share Trip Modal */}
+      {sharingTrip && (
+        <ShareTripModal
+          isOpen={!!sharingTrip}
+          onClose={() => setSharingTrip(null)}
+          trip={sharingTrip}
+          onTripUpdated={(updatedData) => {
+            setTrips((prev) =>
+              prev.map((t) =>
+                t.id === updatedData.trip_id
+                  ? { ...t, is_public: updatedData.is_public, share_slug: updatedData.share_slug }
+                  : t
+              )
+            );
+          }}
+        />
+      )}
+
       {/* Delete Confirmation Modal */}
       <Modal
         isOpen={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
         title="Delete Trip?"
-        description={`Are you sure you want to delete "${tripToDelete?.name}"? All stops and itinerary schedules within it will be permanently removed.`}
+        description={`Are you sure you want to delete "${tripToDelete?.name}"? All stops, expenses, and itinerary schedules within it will be permanently removed.`}
         maxWidth="max-w-md"
       >
         <div className="pt-3 flex items-center justify-end gap-3 border-t border-slate-100">

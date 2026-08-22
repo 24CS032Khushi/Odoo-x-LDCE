@@ -18,6 +18,8 @@ import ItineraryViewPage from './pages/trips/ItineraryViewPage';
 import DiscoverPage from './pages/discover/DiscoverPage';
 import BudgetPage from './pages/budget/BudgetPage';
 import CalendarPage from './pages/calendar/CalendarPage';
+import PublicSharePage from './pages/trips/PublicSharePage';
+import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 
 // Public Route Guard (Redirect to dashboard if already logged in)
 const PublicOnlyRoute = ({ children }) => {
@@ -32,6 +34,9 @@ const PublicOnlyRoute = ({ children }) => {
 export function AppRoutes() {
   return (
     <Routes>
+      {/* Public Share Itinerary Route (NO AUTH REQUIRED) */}
+      <Route path="/share/:shareSlug" element={<PublicSharePage />} />
+
       {/* Public Auth Routes */}
       <Route
         path="/login"
@@ -63,6 +68,7 @@ export function AppRoutes() {
           <Route path="/itinerary" element={<TripsPage />} />
           <Route path="/budget" element={<BudgetPage />} />
           <Route path="/calendar" element={<CalendarPage />} />
+          <Route path="/admin" element={<AdminDashboardPage />} />
         </Route>
       </Route>
 

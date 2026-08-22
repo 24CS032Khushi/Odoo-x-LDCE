@@ -1,5 +1,6 @@
 import prisma from '../prisma.js';
 import { AppError } from '../shared/error-handler.js';
+import { fetchGeoDBCities, cacheGeoDBCities } from './geodb.service.js';
 
 export const getCities = async (req, res, next) => {
   try {
@@ -34,7 +35,8 @@ export const getCities = async (req, res, next) => {
     if (sort === 'cost_desc') orderBy = { cost_index: 'desc' };
     if (sort === 'name') orderBy = { name: 'asc' };
 
-    const cities = await prisma.city.findMany({
+    // 1. Query Local Seeded / Cached Cities
+    let localCities = await prisma.city.findMany({
       where,
       orderBy,
       include: {
@@ -44,9 +46,30 @@ export const getCities = async (req, res, next) => {
       }
     });
 
+    // 2. Hybrid GeoDB Fallback if local results are fewer than 5 and a search query is given
+    if (search && search.trim().length >= 2 && localCities.length < 5) {
+      try {
+        const geoDBCities = await fetchGeoDBCities(search.trim(), country);
+        if (geoDBCities.length > 0) {
+          const cached = await cacheGeoDBCities(geoDBCities);
+
+          // Merge any newly cached cities that aren't already in localCities list
+          const existingIds = new Set(localCities.map((c) => c.id));
+          const newEntries = cached.filter((c) => !existingIds.has(c.id));
+
+          if (newEntries.length > 0) {
+            localCities = [...localCities, ...newEntries];
+          }
+        }
+      } catch (err) {
+        // Silently handle any GeoDB exception so the user always gets a 200 response with local data
+        console.warn('[City Search] GeoDB live search handled gracefully:', err.message);
+      }
+    }
+
     res.status(200).json({
       success: true,
-      data: { cities }
+      data: { cities: localCities }
     });
   } catch (error) {
     next(error);

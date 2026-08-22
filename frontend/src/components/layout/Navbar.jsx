@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { User, LogOut, ChevronDown, Menu, X, Plane } from 'lucide-react';
+import { User, LogOut, ChevronDown, Menu, X, Plane, Shield, Calendar, Wallet } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 
@@ -50,8 +50,9 @@ export const Navbar = () => {
     { label: 'Dashboard', path: '/dashboard' },
     { label: 'My Trips', path: '/trips' },
     { label: 'Discover', path: '/discover' },
-    { label: 'Itinerary', path: '/itinerary' },
     { label: 'Budget', path: '/budget' },
+    { label: 'Calendar', path: '/calendar' },
+    ...(user?.role === 'admin' ? [{ label: 'Admin', path: '/admin' }] : [])
   ];
 
   const currentNavLinks = isAuthenticated ? authNavLinks : publicNavLinks;
@@ -124,7 +125,14 @@ export const Navbar = () => {
                   {dropdownOpen && (
                     <div className="absolute right-0 mt-2 w-56 glass-card-elevated text-white p-2 z-50 animate-scale-up">
                       <div className="px-3 py-2 border-b border-white/10">
-                        <p className="text-xs font-semibold text-white truncate">{user?.name}</p>
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs font-semibold text-white truncate">{user?.name}</p>
+                          {user?.role === 'admin' && (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/30 text-amber-200 border border-amber-500/40">
+                              Admin
+                            </span>
+                          )}
+                        </div>
                         <p className="text-[11px] text-white/60 truncate">{user?.email}</p>
                       </div>
 
@@ -137,6 +145,17 @@ export const Navbar = () => {
                           <User className="w-3.5 h-3.5 text-white/70" />
                           Profile & Settings
                         </Link>
+
+                        {user?.role === 'admin' && (
+                          <Link
+                            to="/admin"
+                            onClick={() => setDropdownOpen(false)}
+                            className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-amber-300 hover:bg-white/15 transition-colors"
+                          >
+                            <Shield className="w-3.5 h-3.5 text-amber-300" />
+                            Admin Console
+                          </Link>
+                        )}
                       </div>
 
                       <div className="pt-1 border-t border-white/10">

@@ -7,6 +7,8 @@ import cityRoutes from './cities/cities.routes.js';
 import activityRoutes from './activities/activities.routes.js';
 import tripRoutes from './trips/trips.routes.js';
 import savedDestinationRoutes from './saved-destinations/saved-destinations.routes.js';
+import shareRoutes from './share/share.routes.js';
+import adminRoutes from './admin/admin.routes.js';
 import { errorHandler, AppError } from './shared/error-handler.js';
 
 dotenv.config();
@@ -39,7 +41,7 @@ app.get(`${API_PREFIX}/health`, (req, res) => {
     data: {
       status: 'healthy',
       app: 'GlobeTrotter Smart API',
-      version: '2.0.0',
+      version: '4.0.0',
       timestamp: new Date().toISOString()
     }
   });
@@ -52,6 +54,8 @@ app.use(`${API_PREFIX}/cities`, cityRoutes);
 app.use(`${API_PREFIX}/activities`, activityRoutes);
 app.use(`${API_PREFIX}/trips`, tripRoutes);
 app.use(`${API_PREFIX}/saved-destinations`, savedDestinationRoutes);
+app.use(`${API_PREFIX}/share`, shareRoutes);
+app.use(`${API_PREFIX}/admin`, adminRoutes);
 
 // Handle unknown routes
 app.all('*', (req, res, next) => {

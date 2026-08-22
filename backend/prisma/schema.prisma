@@ -28,6 +28,8 @@ model User {
   password_hash String
   photo_url     String?
   language      String             @default("en")
+  role          String             @default("user")
+  last_active   DateTime           @default(now())
   created_at    DateTime           @default(now())
 
   trips              Trip[]
@@ -128,7 +130,9 @@ model Expense {
   trip_id      Int
   category     ExpenseCategory
   amount       Decimal         @db.Decimal(10, 2)
+  note         String?
   trip_stop_id Int?
+  created_at   DateTime        @default(now())
 
   trip      Trip      @relation(fields: [trip_id], references: [id], onDelete: Cascade)
   trip_stop TripStop? @relation(fields: [trip_stop_id], references: [id], onDelete: SetNull)

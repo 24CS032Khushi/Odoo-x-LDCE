@@ -1,6 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Mail, Globe, Image as ImageIcon, Calendar, Save, Trash2, Heart, MapPin, AlertTriangle } from 'lucide-react';
+import {
+  User,
+  Mail,
+  Globe,
+  Upload,
+  Calendar,
+  Save,
+  Trash2,
+  Heart,
+  MapPin,
+  AlertTriangle,
+  Camera,
+  Check
+} from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import Card, { CardHeader, CardTitle, CardDescription, CardBody, CardFooter, PhotoCard } from '../../components/shared/Card';
@@ -9,24 +22,16 @@ import Button from '../../components/shared/Button';
 import Modal from '../../components/shared/Modal';
 import api from '../../services/api';
 
-const languages = [
-  { code: 'en', label: 'English (EN)' },
-  { code: 'hi', label: 'Hindi (हिन्दी)' },
-  { code: 'gu', label: 'Gujarati (ગુજરાતી)' },
-  { code: 'es', label: 'Spanish (Español)' },
-  { code: 'fr', label: 'French (Français)' },
-  { code: 'de', label: 'German (Deutsch)' },
-];
-
 export const ProfilePage = () => {
   const { user, updateProfile, logout } = useAuth();
   const { success, info, error: toastError } = useToast();
   const navigate = useNavigate();
+  const fileInputRef = useRef(null);
 
   const [formData, setFormData] = useState({
     name: user?.name || '',
     photo_url: user?.photo_url || '',
-    language: user?.language || 'en',
+    language: 'en',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasChanged, setHasChanged] = useState(false);
@@ -44,7 +49,7 @@ export const ProfilePage = () => {
       setFormData({
         name: user.name || '',
         photo_url: user.photo_url || '',
-        language: user.language || 'en',
+        language: 'en',
       });
     }
     fetchSavedDestinations();
@@ -80,11 +85,39 @@ export const ProfilePage = () => {
       const updated = { ...prev, [name]: value };
       setHasChanged(
         updated.name !== user?.name ||
-        updated.photo_url !== (user?.photo_url || '') ||
-        updated.language !== (user?.language || 'en')
+        updated.photo_url !== (user?.photo_url || '')
       );
       return updated;
     });
+  };
+
+  // Handle local image file browse
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      toastError('Image size should be less than 2MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      setFormData((prev) => ({ ...prev, photo_url: result }));
+      setHasChanged(true);
+      success('Image loaded! Click "Save Changes" to apply.');
+    };
+    reader.onerror = () => {
+      toastError('Failed to read image file.');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemovePhoto = () => {
+    setFormData((prev) => ({ ...prev, photo_url: '' }));
+    setHasChanged(true);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleSubmit = async (e) => {
@@ -98,8 +131,8 @@ export const ProfilePage = () => {
     try {
       await updateProfile({
         name: formData.name.trim(),
-        photo_url: formData.photo_url.trim() || null,
-        language: formData.language,
+        photo_url: formData.photo_url || null,
+        language: 'en',
       });
       success('Profile updated successfully!');
       setHasChanged(false);
@@ -138,7 +171,7 @@ export const ProfilePage = () => {
           Profile & Preferences
         </h1>
         <p className="text-sm text-slate-500 mt-1">
-          Manage your personal details, language preferences, saved places, and account settings.
+          Manage your personal details, profile picture, saved destinations, and account settings.
         </p>
       </div>
 
@@ -147,25 +180,40 @@ export const ProfilePage = () => {
         {/* Profile Card Summary */}
         <Card className="md:col-span-1 h-fit">
           <CardBody className="flex flex-col items-center text-center p-6 space-y-4">
-            <div className="w-24 h-24 rounded-full bg-ocean-teal/10 text-ocean-teal font-extrabold text-2xl flex items-center justify-center border-4 border-white shadow-lg overflow-hidden">
-              {formData.photo_url ? (
-                <img
-                  src={formData.photo_url}
-                  alt={formData.name}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src = '';
-                  }}
-                />
-              ) : (
-                user?.name?.substring(0, 2).toUpperCase() || 'GT'
-              )}
+            <div className="relative group">
+              <div className="w-24 h-24 rounded-full bg-ocean-teal/10 text-ocean-teal font-extrabold text-2xl flex items-center justify-center border-4 border-white shadow-lg overflow-hidden">
+                {formData.photo_url ? (
+                  <img
+                    src={formData.photo_url}
+                    alt={formData.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = '';
+                    }}
+                  />
+                ) : (
+                  user?.name?.substring(0, 2).toUpperCase() || 'GT'
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute bottom-0 right-0 p-2 rounded-full bg-ocean-teal text-white shadow-md hover:bg-ocean-deep transition-transform hover:scale-105"
+                title="Browse Photo"
+              >
+                <Camera className="w-3.5 h-3.5" />
+              </button>
             </div>
 
             <div>
               <h3 className="text-lg font-bold text-abyss font-display">{user?.name}</h3>
               <p className="text-xs text-slate-500 mt-0.5">{user?.email}</p>
+              {user?.role === 'admin' && (
+                <span className="inline-block mt-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-700 border border-amber-500/30">
+                  Platform Admin
+                </span>
+              )}
             </div>
 
             <div className="w-full pt-4 border-t border-slate-100 space-y-2.5 text-xs text-left">
@@ -181,8 +229,8 @@ export const ProfilePage = () => {
                   <Globe className="w-3.5 h-3.5" />
                   Language:
                 </span>
-                <span className="font-semibold uppercase text-ocean-teal bg-ocean-teal/10 px-2.5 py-0.5 rounded-full">
-                  {user?.language || 'en'}
+                <span className="font-semibold text-ocean-teal bg-ocean-teal/10 px-2.5 py-0.5 rounded-full">
+                  English (EN)
                 </span>
               </div>
             </div>
@@ -196,11 +244,11 @@ export const ProfilePage = () => {
               <CardHeader>
                 <CardTitle>Edit Account Information</CardTitle>
                 <CardDescription>
-                  Update your display name, profile photo, and system language.
+                  Update your display name and upload a profile photo from your device.
                 </CardDescription>
               </CardHeader>
 
-              <CardBody className="space-y-4">
+              <CardBody className="space-y-5">
                 <FormInput
                   label="Full Name"
                   name="name"
@@ -222,34 +270,54 @@ export const ProfilePage = () => {
                   helperText="Email cannot be changed directly."
                 />
 
-                <FormInput
-                  label="Profile Photo URL"
-                  name="photo_url"
-                  type="url"
-                  placeholder="https://example.com/avatar.jpg"
-                  value={formData.photo_url}
-                  onChange={handleChange}
-                  leftIcon={ImageIcon}
-                  helperText="Optional link to your avatar image."
-                />
-
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor="language" className="text-xs font-semibold text-slate-700 tracking-wide">
-                    Preferred Language
+                {/* Browse Photo File Upload Control */}
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-slate-700 tracking-wide">
+                    Profile Photo
                   </label>
-                  <select
-                    id="language"
-                    name="language"
-                    value={formData.language}
-                    onChange={handleChange}
-                    className="w-full text-sm bg-white text-abyss border border-slate-300 rounded-xl px-3.5 py-2.5 outline-none hover:border-slate-400 focus:border-ocean-teal focus:ring-2 focus:ring-ocean-teal/20 shadow-sm"
-                  >
-                    {languages.map((lang) => (
-                      <option key={lang.code} value={lang.code}>
-                        {lang.label}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      className="hidden"
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs font-bold text-abyss transition-all shadow-xs"
+                    >
+                      <Upload className="w-4 h-4 text-ocean-teal" />
+                      <span>Browse Photo from Device</span>
+                    </button>
+
+                    {formData.photo_url && (
+                      <button
+                        type="button"
+                        onClick={handleRemovePhoto}
+                        className="text-xs text-rose-600 hover:underline font-semibold"
+                      >
+                        Remove photo
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    Supports PNG, JPG, or GIF up to 2MB. Preview updates instantly.
+                  </p>
+                </div>
+
+                {/* System Language (English Only) */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold text-slate-700 tracking-wide">
+                    System Language
+                  </label>
+                  <div className="flex items-center gap-2 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700">
+                    <Globe className="w-4 h-4 text-ocean-teal" />
+                    <span>English (EN)</span>
+                    <span className="ml-auto text-[10px] text-slate-400 font-semibold uppercase">Default</span>
+                  </div>
                 </div>
               </CardBody>
 
@@ -297,7 +365,7 @@ export const ProfilePage = () => {
                 <PhotoCard
                   imageUrl={city.image_url}
                   title={city.name}
-                  subtitle={`${city.country} • ${city.cost_index}x Cost`}
+                  subtitle={`${city.country} • ${parseFloat(city.cost_index || 1.0).toFixed(1)}x Cost`}
                   badge={`${city.activities?.length || 5} Activities`}
                   badgeColor="bg-ocean-deep/80 text-white"
                   actionLabel="Explore City"

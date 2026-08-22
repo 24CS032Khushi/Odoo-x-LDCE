@@ -12,7 +12,9 @@ import {
   Plus,
   TrendingUp,
   Star,
-  Wallet
+  Wallet,
+  CalendarDays,
+  Activity
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import Card, { CardHeader, CardTitle, CardDescription, CardBody, PhotoCard } from '../../components/shared/Card';
@@ -25,6 +27,7 @@ export const DashboardPage = () => {
   const navigate = useNavigate();
 
   const [trips, setTrips] = useState([]);
+  const [totalCitiesCount, setTotalCitiesCount] = useState(19);
   const [topCities, setTopCities] = useState([]);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -45,7 +48,7 @@ export const DashboardPage = () => {
         setTrips(tripsRes.data.trips);
       }
       if (citiesRes.data?.cities) {
-        // Take top 3 by popularity
+        setTotalCitiesCount(citiesRes.data.cities.length);
         setTopCities(citiesRes.data.cities.slice(0, 3));
       }
     } catch (err) {
@@ -72,7 +75,7 @@ export const DashboardPage = () => {
         <div className="relative z-10 max-w-2xl space-y-4">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full glass-pill-control text-xs font-semibold text-white/90">
             <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-            <span>GlobeTrotter Smart • Phase 2 Engine</span>
+            <span>GlobeTrotter Smart • Intelligent Journey Orchestrator</span>
           </div>
 
           <h1 className="font-display text-3xl sm:text-5xl font-bold text-white tracking-tight leading-tight">
@@ -80,7 +83,7 @@ export const DashboardPage = () => {
           </h1>
 
           <p className="text-white/85 text-sm sm:text-base leading-relaxed">
-            Ready to plan your next itinerary? Design multi-city journeys, allocate your budget in INR (₹), and organize activities with ease.
+            Ready to plan your next itinerary? Design multi-city journeys, balance your budget in INR (₹), monitor real-time health scores, and organize activities with ease.
           </p>
 
           <div className="pt-2 flex flex-wrap gap-3">
@@ -95,6 +98,11 @@ export const DashboardPage = () => {
             <Link to="/discover">
               <Button variant="glass" size="md" icon={Compass}>
                 Explore Destinations
+              </Button>
+            </Link>
+            <Link to="/budget">
+              <Button variant="glass" size="md" icon={Wallet}>
+                Smart Budget
               </Button>
             </Link>
           </div>
@@ -133,7 +141,7 @@ export const DashboardPage = () => {
           </div>
           <div>
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Curated Destinations</span>
-            <h4 className="text-2xl font-bold text-abyss font-display">12 Cities Seeded</h4>
+            <h4 className="text-2xl font-bold text-abyss font-display">{totalCitiesCount} Cities Active</h4>
           </div>
         </div>
       </div>
@@ -221,13 +229,13 @@ export const DashboardPage = () => {
                 imageUrl={city.image_url}
                 title={city.name}
                 subtitle={`${city.country} • ${city.region || 'Global'}`}
-                badge={`${city.cost_index}x Cost`}
+                badge={`${parseFloat(city.cost_index || 1.0).toFixed(1)}x Cost`}
                 badgeColor="bg-ocean-deep/80 text-white"
               >
                 <div className="flex items-center justify-between pt-1 border-t border-white/10 text-xs">
                   <span className="flex items-center gap-1 text-amber-300 font-bold">
                     <Star className="w-3.5 h-3.5 fill-amber-300" />
-                    {city.popularity_score}
+                    {parseFloat(city.popularity_score || 5.0).toFixed(1)}
                   </span>
                   <span className="text-white/80 font-medium">Explore & Add →</span>
                 </div>

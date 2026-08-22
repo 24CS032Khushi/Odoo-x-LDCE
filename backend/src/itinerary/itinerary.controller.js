@@ -1,5 +1,7 @@
 import prisma from '../prisma.js';
 import { AppError } from '../shared/error-handler.js';
+import { calculateTripHealthScore } from '../trips/healthScore.service.js';
+import { evaluateTripSanityChecks } from '../trips/sanityChecker.service.js';
 
 export const getTripItinerary = async (req, res, next) => {
   try {
@@ -27,7 +29,8 @@ export const getTripItinerary = async (req, res, next) => {
               include: { activity: true }
             }
           }
-        }
+        },
+        trip_health_score: true
       }
     });
 
@@ -64,11 +67,19 @@ export const getTripItinerary = async (req, res, next) => {
       dayGroups[day].push(item);
     });
 
+    // Compute or fetch health score & sanity flags
+    const healthScore = await calculateTripHealthScore(trip.id);
+    const sanityFlags = await evaluateTripSanityChecks(trip.id);
+
     res.status(200).json({
       success: true,
       data: {
         trip_id: trip.id,
         trip_name: trip.name,
+        description: trip.description,
+        cover_photo_url: trip.cover_photo_url,
+        is_public: trip.is_public,
+        share_slug: trip.share_slug,
         start_date: trip.start_date,
         end_date: trip.end_date,
         total_budget: trip.total_budget,
@@ -77,7 +88,9 @@ export const getTripItinerary = async (req, res, next) => {
         activities_count: allItems.length,
         stops: trip.trip_stops,
         days: dayGroups,
-        items: allItems
+        items: allItems,
+        health_score: healthScore,
+        sanity_flags: sanityFlags
       }
     });
   } catch (error) {
@@ -142,6 +155,9 @@ export const addItineraryItem = async (req, res, next) => {
       }
     });
 
+    // Recompute health score
+    await calculateTripHealthScore(tripId);
+
     res.status(201).json({
       success: true,
       data: { item: newItem }
@@ -200,6 +216,9 @@ export const updateItineraryItem = async (req, res, next) => {
       }
     });
 
+    // Recompute health score
+    await calculateTripHealthScore(tripId);
+
     res.status(200).json({
       success: true,
       data: { item: updatedItem }
@@ -240,6 +259,9 @@ export const deleteItineraryItem = async (req, res, next) => {
     await prisma.itineraryItem.delete({
       where: { id: itemId }
     });
+
+    // Recompute health score
+    await calculateTripHealthScore(tripId);
 
     res.status(200).json({
       success: true,

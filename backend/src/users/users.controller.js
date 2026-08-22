@@ -9,8 +9,10 @@ export const getMe = async (req, res, next) => {
         id: true,
         name: true,
         email: true,
+        role: true,
         photo_url: true,
         language: true,
+        last_active: true,
         created_at: true
       }
     });
@@ -59,8 +61,10 @@ export const updateMe = async (req, res, next) => {
         id: true,
         name: true,
         email: true,
+        role: true,
         photo_url: true,
         language: true,
+        last_active: true,
         created_at: true
       }
     });

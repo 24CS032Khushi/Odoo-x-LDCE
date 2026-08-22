@@ -42,14 +42,17 @@ export const signup = async (req, res, next) => {
         name: name.trim(),
         email: normalizedEmail,
         password_hash: passwordHash,
+        role: 'user',
         language: 'en'
       },
       select: {
         id: true,
         name: true,
         email: true,
+        role: true,
         photo_url: true,
         language: true,
+        last_active: true,
         created_at: true
       }
     });
@@ -91,14 +94,22 @@ export const login = async (req, res, next) => {
       throw new AppError('Invalid email or password.', 401, 'INVALID_CREDENTIALS');
     }
 
+    // Update last_active
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { last_active: new Date() }
+    });
+
     const token = generateToken(user.id);
 
     const safeUser = {
       id: user.id,
       name: user.name,
       email: user.email,
+      role: user.role || 'user',
       photo_url: user.photo_url,
       language: user.language,
+      last_active: user.last_active,
       created_at: user.created_at
     };
 
@@ -122,7 +133,6 @@ export const forgotPassword = async (req, res, next) => {
       throw new AppError('Please provide a valid email address.', 400, 'VALIDATION_ERROR');
     }
 
-    // Stub mock response for hackathon
     res.status(200).json({
       success: true,
       data: {

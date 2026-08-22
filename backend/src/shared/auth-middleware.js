@@ -32,8 +32,10 @@ export const requireAuth = async (req, res, next) => {
         id: true,
         name: true,
         email: true,
+        role: true,
         photo_url: true,
         language: true,
+        last_active: true,
         created_at: true
       }
     });
@@ -42,9 +44,24 @@ export const requireAuth = async (req, res, next) => {
       throw new AppError('User belonging to this token no longer exists.', 401, 'USER_NOT_FOUND');
     }
 
+    // Update last_active asynchronously (don't block request)
+    prisma.user
+      .update({
+        where: { id: user.id },
+        data: { last_active: new Date() }
+      })
+      .catch(() => {});
+
     req.user = user;
     next();
   } catch (error) {
     next(error);
   }
+};
+
+export const requireAdmin = (req, res, next) => {
+  if (!req.user || req.user.role !== 'admin') {
+    return next(new AppError('Administrator access required for this resource.', 403, 'FORBIDDEN'));
+  }
+  next();
 };

@@ -1,5 +1,6 @@
 import prisma from '../prisma.js';
 import { AppError } from '../shared/error-handler.js';
+import { calculateTripHealthScore } from './healthScore.service.js';
 
 export const addTripStop = async (req, res, next) => {
   try {
@@ -54,6 +55,9 @@ export const addTripStop = async (req, res, next) => {
       }
     });
 
+    // Recompute health score
+    await calculateTripHealthScore(tripId);
+
     res.status(201).json({
       success: true,
       data: { stop: newStop }
@@ -95,6 +99,9 @@ export const reorderTripStops = async (req, res, next) => {
         })
       )
     );
+
+    // Recompute health score
+    await calculateTripHealthScore(tripId);
 
     const updatedStops = await prisma.tripStop.findMany({
       where: { trip_id: tripId },
@@ -159,6 +166,9 @@ export const updateTripStop = async (req, res, next) => {
       }
     });
 
+    // Recompute health score
+    await calculateTripHealthScore(tripId);
+
     res.status(200).json({
       success: true,
       data: { stop: updatedStop }
@@ -197,6 +207,9 @@ export const deleteTripStop = async (req, res, next) => {
     await prisma.tripStop.delete({
       where: { id: stopId }
     });
+
+    // Recompute health score
+    await calculateTripHealthScore(tripId);
 
     res.status(200).json({
       success: true,
